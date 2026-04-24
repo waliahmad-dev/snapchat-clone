@@ -1,0 +1,61 @@
+{
+  "expo": {
+    "name": "Snapchat Clone",
+    "slug": "snapchat-clone",
+    "scheme": "snapchat-clone",
+    "version": "1.0.0",
+    "newArchEnabled": true,
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#000000"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "experiments": {
+      "tsconfigPaths": true
+    },
+    "plugins": [
+      "expo-router",
+      "expo-camera",
+      "expo-media-library",
+["expo-secure-store", { "configureAndroidBackup": true }],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Snapchat Clone to access your photos.",
+          "cameraPermission": "Allow Snapchat Clone to access your camera."
+        }
+      ]
+    ],
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.yourname.snapchatclone",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Used to take snaps.",
+        "NSPhotoLibraryUsageDescription": "Used to save snaps to your memories.",
+        "NSPhotoLibraryAddUsageDescription": "Used to save snaps to your photo library."
+      }
+    },
+    "android": {
+      "package": "com.yourname.snapchatclone",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#000000"
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.VIBRATE"
+      ]
+    }
+  }
+}

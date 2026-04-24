@@ -1,0 +1,14 @@
+export const STREAK_TTL_SECONDS = 86400;
+export const STORY_TTL_HOURS = 24;
+export const SNAP_MAX_VIEW_DURATION_MS = 10000; 
+export const PRESENCE_TTL_SECONDS = 60;
+export const STORY_VIEW_THROTTLE_SECONDS = 300;
+export const SEARCH_DEBOUNCE_MS = 300;
+export const MAX_IMAGE_SIZE_PX = 1080;
+export const PREVIEW_IMAGE_SIZE_PX = 480;
+export const THUMBNAIL_SIZE_PX = 360;
+export const IMAGE_QUALITY_FULL = 0.85;
+export const IMAGE_QUALITY_PREVIEW = 0.7;
+export const IMAGE_QUALITY_THUMBNAIL = 0.82;
+export const SIGNED_URL_EXPIRY_SECONDS = 3600;
+export const MESSAGE_PAGE_SIZE = 40;
