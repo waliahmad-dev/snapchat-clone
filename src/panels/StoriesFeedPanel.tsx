@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useStories, type StoryGroup } from '@features/stories/hooks/useStories';
 import { StoryViewer } from '@features/stories/components/StoryViewer';
 import { TopBar } from '@components/ui/TopBar';
-import { BottomNav } from '@components/ui/BottomNav';
+import { BOTTOM_NAV_HEIGHT } from '@components/ui/BottomNav';
 import { BreathingLoader } from '@components/ui/BreathingLoader';
 
 export function StoriesFeedPanel() {
@@ -45,7 +45,7 @@ export function StoriesFeedPanel() {
         <ScrollView
           className="flex-1"
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 24 }}
+          contentContainerStyle={{ paddingBottom: BOTTOM_NAV_HEIGHT + 24 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -83,9 +83,6 @@ export function StoriesFeedPanel() {
         </ScrollView>
       )}
 
-      <BottomNav active="stories" />
-
-   
       {activeGroup && (
         <Modal visible animationType="none" presentationStyle="fullScreen" statusBarTranslucent>
           <SafeAreaProvider>

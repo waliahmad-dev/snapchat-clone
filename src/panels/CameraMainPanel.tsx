@@ -25,7 +25,6 @@ import { useDrawing } from '@features/camera/hooks/useDrawing';
 import { useCameraStore } from '@features/camera/store/cameraStore';
 import { useAuthStore } from '@features/auth/store/authStore';
 import { Avatar } from '@components/ui/Avatar';
-import { BottomNav } from '@components/ui/BottomNav';
 
 const VERT_ACTIVATION = 28;
 const VERT_COMMIT = 90;
@@ -305,10 +304,6 @@ export function CameraMainPanel() {
             <Ionicons name="chevron-up" size={20} color="rgba(255,255,255,0.6)" />
             <Text className="text-white/60 text-xs">Memories</Text>
           </View>
-
-          <View style={styles.bottomNavWrap} pointerEvents="box-none">
-            <BottomNav active="camera" />
-          </View>
         </>
       )}
     </View>
@@ -338,12 +333,6 @@ const styles = StyleSheet.create({
     bottom: 80,
     alignSelf: 'center',
     alignItems: 'center',
-  },
-  bottomNavWrap: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
   },
   focusRing: {
     position: 'absolute',

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { supabase } from '@lib/supabase/client';
 import { useAuthStore } from '@features/auth/store/authStore';
 import type { DbUser } from '@/types/database';
@@ -7,19 +7,42 @@ export function useProfile(userId?: string) {
   const currentUser = useAuthStore((s) => s.profile);
   const setProfile = useAuthStore((s) => s.setProfile);
   const targetId = userId ?? currentUser?.id;
-  const [profile, setLocalProfile] = useState<DbUser | null>(
-    userId ? null : currentUser
-  );
+  const isOwn = !userId || userId === currentUser?.id;
+  const instanceId = useId();
+  const [externalProfile, setExternalProfile] = useState<DbUser | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const profile = isOwn ? currentUser : externalProfile;
+
+  useEffect(() => {
+    if (isOwn || !targetId) return;
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetId, isOwn]);
 
   useEffect(() => {
     if (!targetId) return;
-    if (!userId && currentUser) {
-      setLocalProfile(currentUser);
-      return;
-    }
-    load();
-  }, [targetId]);
+    const sub = supabase
+      .channel(`users:${targetId}:${instanceId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'users',
+          filter: `id=eq.${targetId}`,
+        },
+        (payload) => {
+          const next = payload.new as DbUser;
+          if (isOwn) setProfile(next);
+          else setExternalProfile(next);
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(sub);
+    };
+  }, [targetId, instanceId, isOwn, setProfile]);
 
   async function load() {
     if (!targetId) return;
@@ -30,24 +53,27 @@ export function useProfile(userId?: string) {
         .select('*')
         .eq('id', targetId)
         .single();
-      setLocalProfile(data);
+      if (!data) return;
+      if (isOwn) setProfile(data);
+      else setExternalProfile(data);
     } finally {
       setLoading(false);
     }
   }
 
-  async function updateProfile(fields: Partial<Pick<DbUser, 'display_name' | 'avatar_url'>>) {
-    if (!currentUser) return;
-    const { data } = await supabase
+  async function updateProfile(
+    fields: Partial<Pick<DbUser, 'display_name' | 'avatar_url' | 'date_of_birth' | 'phone' | 'username'>>,
+  ) {
+    if (!currentUser) throw new Error('Not signed in');
+    const { data, error } = await supabase
       .from('users')
       .update(fields)
       .eq('id', currentUser.id)
       .select()
       .single();
-    if (data) {
-      setProfile(data);
-      setLocalProfile(data);
-    }
+    if (error) throw error;
+    if (!data) throw new Error('Update returned no row');
+    setProfile(data);
   }
 
   return { profile, loading, updateProfile, refresh: load };

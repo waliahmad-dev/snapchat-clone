@@ -9,6 +9,8 @@ export interface DbUser {
   display_name: string;
   avatar_url: string | null;
   snap_score: number;
+  date_of_birth: string | null;
+  phone: string | null;
   created_at: string;
 }
 

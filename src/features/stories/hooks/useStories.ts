@@ -32,6 +32,11 @@ export function useStories() {
         { event: 'UPDATE', schema: 'public', table: 'stories' },
         () => loadStories()
       )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'story_views' },
+        () => loadStories()
+      )
       .subscribe();
 
     return () => {

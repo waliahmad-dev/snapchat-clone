@@ -50,13 +50,13 @@ export function StoryViewer({ storyGroup, onClose, onRecordView }: Props) {
   const [urlCache, setUrlCache] = useState<Record<string, string>>({});
   const [viewers, setViewers] = useState<ViewerRow[]>([]);
   const [viewersLoading, setViewersLoading] = useState(false);
-  const hasFetchedRef = useRef<Set<string>>(new Set()); // avoid refetches per story
+  const hasFetchedRef = useRef<Set<string>>(new Set());
 
   const currentStory = storyGroup.stories[currentIndex];
   const isOwn = storyGroup.user.id === profile?.id;
 
   const [panelOpen, setPanelOpen] = useState(false);
-  const panelOpenSV = useSharedValue(0); // 1 when open, 0 when closed (worklet-readable)
+  const panelOpenSV = useSharedValue(0);
 
   useEffect(() => {
     loadUrl(currentStory.media_url);
@@ -64,6 +64,31 @@ export function StoryViewer({ storyGroup, onClose, onRecordView }: Props) {
     setViewers([]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentIndex]);
+
+  useEffect(() => {
+    if (!isOwn || !currentStory) return;
+    const sub = supabase
+      .channel(`story_views:${currentStory.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'story_views',
+          filter: `story_id=eq.${currentStory.id}`,
+        },
+        () => {
+          if (hasFetchedRef.current.has(currentStory.id)) {
+            fetchViewers();
+          }
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(sub);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentStory?.id, isOwn]);
 
   async function loadUrl(path: string) {
     if (urlCache[path]) return;
@@ -121,10 +146,7 @@ export function StoryViewer({ storyGroup, onClose, onRecordView }: Props) {
         return;
       }
       const ids = views.map((v: { viewer_id: string }) => v.viewer_id);
-      const { data: users } = await supabase
-        .from('users')
-        .select('*')
-        .in('id', ids);
+      const { data: users } = await supabase.from('users').select('*').in('id', ids);
       const userMap = new Map((users ?? []).map((u: DbUser) => [u.id, u]));
 
       setViewers(
@@ -132,7 +154,7 @@ export function StoryViewer({ storyGroup, onClose, onRecordView }: Props) {
           viewer_id: v.viewer_id,
           viewed_at: v.viewed_at,
           user: userMap.get(v.viewer_id),
-        })),
+        }))
       );
     } finally {
       setViewersLoading(false);
@@ -168,16 +190,15 @@ export function StoryViewer({ storyGroup, onClose, onRecordView }: Props) {
     ]);
   }
 
-  const swipeDownToClose = Gesture.Pan()
-    .onEnd((e) => {
-      'worklet';
-      if (e.translationY > 100 && Math.abs(e.translationX) < 80) {
-        // Tiered dismiss: if the viewers panel is up, the first swipe-down
-        // collapses the panel only; a second swipe-down then closes the story.
-        if (panelOpenSV.value === 1) return;
-        runOnJS(onClose)();
-      }
-    });
+  const swipeDownToClose = Gesture.Pan().onEnd((e) => {
+    'worklet';
+    if (e.translationY > 100 && Math.abs(e.translationX) < 80) {
+      // Tiered dismiss: if the viewers panel is up, the first swipe-down
+      // collapses the panel only; a second swipe-down then closes the story.
+      if (panelOpenSV.value === 1) return;
+      runOnJS(onClose)();
+    }
+  });
 
   const swipeUpToOpenPanel = Gesture.Pan()
     .enabled(isOwn)
@@ -195,10 +216,7 @@ export function StoryViewer({ storyGroup, onClose, onRecordView }: Props) {
       'worklet';
       if (e.translationY > 0) {
         panelY.value = e.translationY;
-        backdropOpacity.value = Math.max(
-          0,
-          0.55 - e.translationY / VIEWERS_PANEL_HEIGHT,
-        );
+        backdropOpacity.value = Math.max(0, 0.55 - e.translationY / VIEWERS_PANEL_HEIGHT);
       }
     })
     .onEnd((e) => {
@@ -213,7 +231,7 @@ export function StoryViewer({ storyGroup, onClose, onRecordView }: Props) {
 
   const storyGestures = useMemo(
     () => Gesture.Race(swipeDownToClose, swipeUpToOpenPanel),
-    [swipeDownToClose, swipeUpToOpenPanel],
+    [swipeDownToClose, swipeUpToOpenPanel]
   );
 
   const currentUrl = urlCache[currentStory?.media_url];
@@ -249,13 +267,13 @@ export function StoryViewer({ storyGroup, onClose, onRecordView }: Props) {
         />
 
         <View className="flex-row items-center justify-between px-3 pt-2">
-          <View className="flex-row items-center gap-2 flex-1">
+          <View className="flex-1 flex-row items-center gap-2">
             <Avatar
               uri={storyGroup.user.avatar_url ?? null}
               name={storyGroup.user.display_name}
               size={32}
             />
-            <Text className="text-white font-semibold text-sm" numberOfLines={1}>
+            <Text className="text-sm font-semibold text-white" numberOfLines={1}>
               {storyGroup.user.display_name}
             </Text>
           </View>
@@ -265,14 +283,14 @@ export function StoryViewer({ storyGroup, onClose, onRecordView }: Props) {
               <Pressable
                 onPress={handleDeleteStory}
                 hitSlop={8}
-                className="w-9 h-9 rounded-full bg-black/40 items-center justify-center">
+                className="h-9 w-9 items-center justify-center rounded-full bg-black/40">
                 <Ionicons name="trash-outline" size={18} color="#fff" />
               </Pressable>
             )}
             <Pressable
               onPress={onClose}
               hitSlop={8}
-              className="w-9 h-9 rounded-full bg-black/40 items-center justify-center">
+              className="h-9 w-9 items-center justify-center rounded-full bg-black/40">
               <Ionicons name="close" size={20} color="#fff" />
             </Pressable>
           </View>
@@ -284,20 +302,15 @@ export function StoryViewer({ storyGroup, onClose, onRecordView }: Props) {
           <Pressable
             onPress={openPanel}
             hitSlop={8}
-            className="flex-row items-center bg-black/50 rounded-full px-4 py-2 gap-1">
+            className="flex-row items-center gap-1 rounded-full bg-black/50 px-4 py-2">
             <Ionicons name="chevron-up" size={14} color="#fff" />
             <Ionicons name="eye-outline" size={15} color="#fff" style={{ marginLeft: 2 }} />
-            <Text className="text-white font-semibold text-sm ml-1">
-              {viewCount}
-            </Text>
+            <Text className="ml-1 text-sm font-semibold text-white">{viewCount}</Text>
           </Pressable>
         </SafeAreaView>
       )}
 
-      <Animated.View
-        pointerEvents="none"
-        style={[styles.backdrop, backdropStyle]}
-      />
+      <Animated.View pointerEvents="none" style={[styles.backdrop, backdropStyle]} />
       {panelOpen && (
         <GestureDetector
           gesture={Gesture.Exclusive(
@@ -310,7 +323,7 @@ export function StoryViewer({ storyGroup, onClose, onRecordView }: Props) {
               if (e.translationY > 50 || e.velocityY > 600) {
                 runOnJS(closePanel)();
               }
-            }),
+            })
           )}>
           <View style={styles.backdropTouchable} />
         </GestureDetector>
@@ -319,16 +332,14 @@ export function StoryViewer({ storyGroup, onClose, onRecordView }: Props) {
       <GestureDetector gesture={panelDismissGesture}>
         <Animated.View style={[styles.panel, panelStyle]}>
           <View style={styles.panelHandle} />
-          <Text className="text-black font-bold text-base px-4 pt-1 pb-3">
+          <Text className="px-4 pb-3 pt-1 text-base font-bold text-black">
             Viewed by {viewers.length}
           </Text>
 
           {viewersLoading ? (
-            <Text className="text-gray-500 text-sm text-center py-6">
-              Loading viewers…
-            </Text>
+            <Text className="py-6 text-center text-sm text-gray-500">Loading viewers…</Text>
           ) : viewers.length === 0 ? (
-            <Text className="text-gray-500 text-sm text-center py-6">
+            <Text className="py-6 text-center text-sm text-gray-500">
               No one has viewed this yet.
             </Text>
           ) : (
@@ -342,26 +353,24 @@ export function StoryViewer({ storyGroup, onClose, onRecordView }: Props) {
                     name={item.user?.display_name ?? '?'}
                     size={40}
                   />
-                  <View className="flex-1 ml-3">
-                    <Text className="text-black font-semibold" numberOfLines={1}>
+                  <View className="ml-3 flex-1">
+                    <Text className="font-semibold text-black" numberOfLines={1}>
                       {item.user?.display_name ?? 'Unknown'}
                     </Text>
                     {item.user?.username && (
-                      <Text className="text-gray-500 text-xs" numberOfLines={1}>
+                      <Text className="text-xs text-gray-500" numberOfLines={1}>
                         @{item.user.username}
                       </Text>
                     )}
                   </View>
-                  <Text className="text-gray-400 text-xs ml-2">
+                  <Text className="ml-2 text-xs text-gray-400">
                     {formatDistanceToNow(new Date(item.viewed_at), {
                       addSuffix: false,
                     })}
                   </Text>
                 </View>
               )}
-              ItemSeparatorComponent={() => (
-                <View className="h-px bg-gray-100 ml-16" />
-              )}
+              ItemSeparatorComponent={() => <View className="ml-16 h-px bg-gray-100" />}
             />
           )}
         </Animated.View>

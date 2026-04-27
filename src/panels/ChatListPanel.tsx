@@ -15,7 +15,7 @@ import { ConversationRow } from '@features/chat/components/ConversationRow';
 import { useFriends, type FriendWithStatus } from '@features/friends/hooks/useFriends';
 import { FriendRequests } from '@features/friends/components/FriendRequests';
 import { TopBar } from '@components/ui/TopBar';
-import { BottomNav } from '@components/ui/BottomNav';
+import { BOTTOM_NAV_HEIGHT } from '@components/ui/BottomNav';
 import { BreathingLoader } from '@components/ui/BreathingLoader';
 import { Avatar } from '@components/ui/Avatar';
 import { openChatWith } from '@features/chat/utils/openChat';
@@ -87,6 +87,7 @@ export function ChatListPanel() {
           keyExtractor={() => ''}
           renderItem={() => null}
           showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: BOTTOM_NAV_HEIGHT }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -124,8 +125,6 @@ export function ChatListPanel() {
           }
         />
       )}
-
-      <BottomNav active="chat" />
     </View>
   );
 }

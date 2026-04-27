@@ -1,6 +1,8 @@
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
+  runOnJS,
+  useAnimatedReaction,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -9,6 +11,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { SCREEN_WIDTH } from '@constants/dimensions';
 import { useSwipeNavigation } from './useSwipeNavigation';
 import { useCameraStore } from '@features/camera/store/cameraStore';
+import { BottomNav } from '@components/ui/BottomNav';
 import type { SwipePanel } from '@/types/navigation';
 
 interface SwipeNavigatorContextValue {
@@ -46,6 +49,18 @@ export function SwipeNavigator({ chatPanel, cameraPanel, storiesPanel }: Props) 
   // capture — the preview owns the screen at that point; sliding to chat or
   // stories mid-review would discard unsent work and is always a misclick.
   const navLocked = drawingMode || captureState !== 'idle';
+
+  const [activePanel, setActivePanel] = useState<SwipePanel>('camera');
+
+  useAnimatedReaction(
+    () => Math.round(-translateX.value / SCREEN_WIDTH),
+    (currentIdx, previousIdx) => {
+      if (currentIdx === previousIdx) return;
+      const panel: SwipePanel =
+        currentIdx === 0 ? 'chat' : currentIdx === 2 ? 'stories' : 'camera';
+      runOnJS(setActivePanel)(panel);
+    },
+  );
 
   const startX = useSharedValue(-SCREEN_WIDTH * DEFAULT_INDEX);
 
@@ -87,13 +102,21 @@ export function SwipeNavigator({ chatPanel, cameraPanel, storiesPanel }: Props) 
 
   return (
     <SwipeNavigatorContext.Provider value={{ snapToPanel }}>
-      <GestureDetector gesture={panGesture}>
-        <Animated.View style={[styles.container, containerStyle]}>
-          <View style={[styles.panel, { left: 0 }]}>{chatPanel}</View>
-          <View style={[styles.panel, { left: SCREEN_WIDTH }]}>{cameraPanel}</View>
-          <View style={[styles.panel, { left: 2 * SCREEN_WIDTH }]}>{storiesPanel}</View>
-        </Animated.View>
-      </GestureDetector>
+      <View style={styles.root}>
+        <GestureDetector gesture={panGesture}>
+          <Animated.View style={[styles.container, containerStyle]}>
+            <View style={[styles.panel, { left: 0 }]}>{chatPanel}</View>
+            <View style={[styles.panel, { left: SCREEN_WIDTH }]}>{cameraPanel}</View>
+            <View style={[styles.panel, { left: 2 * SCREEN_WIDTH }]}>{storiesPanel}</View>
+          </Animated.View>
+        </GestureDetector>
+
+        {!navLocked && (
+          <View style={styles.bottomNav} pointerEvents="box-none">
+            <BottomNav active={activePanel} />
+          </View>
+        )}
+      </View>
     </SwipeNavigatorContext.Provider>
   );
 }
@@ -103,6 +126,9 @@ export function useSwipeNavigator() {
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     width: PANEL_COUNT * SCREEN_WIDTH,
@@ -112,5 +138,11 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: SCREEN_WIDTH,
+  },
+  bottomNav: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
 });

@@ -16,8 +16,12 @@ import * as FileSystem from 'expo-file-system/legacy';
 import {
   Canvas,
   Path,
+  Skia,
   Image as SkiaImage,
   ImageFormat,
+  PaintStyle,
+  StrokeCap,
+  StrokeJoin,
   useCanvasRef,
   useImage,
   type SkPath,
@@ -73,25 +77,90 @@ export function PreviewOverlay({
   const reset = useCameraStore((s) => s.reset);
 
   const { width: COMPOSE_W, height: COMPOSE_H } = useWindowDimensions();
-  const compositeRef = useCanvasRef();
   const skImage = useImage(uri);
+  const compositeRef = useCanvasRef();
 
   const imageTransform = facing === 'front' ? [{ scaleX: -1 }] : [];
 
-  // Flatten the displayed image + drawings into a single JPEG so recipients
-  // receive exactly what the sender saw. Without this, the raw camera frame
-  // would ship upstream and all the user's Skia annotations get lost.
-  async function exportComposite(): Promise<string> {
-    if (completedPaths.length === 0 && facing !== 'front') return uri;
-    if (!skImage) return uri;
-    const snap = compositeRef.current?.makeImageSnapshot();
-    if (!snap) return uri;
-    const base64 = snap.encodeToBase64(ImageFormat.JPEG, 92);
+  async function writeBase64Jpeg(base64: string): Promise<string> {
     const out = `${FileSystem.cacheDirectory}snap_composite_${Date.now()}.jpg`;
     await FileSystem.writeAsStringAsync(out, base64, {
       encoding: FileSystem.EncodingType.Base64,
     });
     return out;
+  }
+
+  async function exportComposite(): Promise<string> {
+    if (completedPaths.length === 0 && facing !== 'front') return uri;
+
+    const liveSnap = compositeRef.current?.makeImageSnapshot();
+    if (liveSnap) {
+      const base64 = liveSnap.encodeToBase64(ImageFormat.JPEG, 92);
+      return writeBase64Jpeg(base64);
+    }
+
+    let sourceImage = skImage;
+    if (!sourceImage) {
+      const data = await FileSystem.readAsStringAsync(uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      const skData = Skia.Data.fromBase64(data);
+      sourceImage = Skia.Image.MakeImageFromEncoded(skData);
+    }
+    if (!sourceImage) return uri;
+
+    const W = Math.round(COMPOSE_W);
+    const H = Math.round(COMPOSE_H);
+    const surface = Skia.Surface.MakeOffscreen(W, H);
+    if (!surface) return uri;
+    const canvas = surface.getCanvas();
+
+    const imgW = sourceImage.width();
+    const imgH = sourceImage.height();
+    const srcAspect = imgW / imgH;
+    const dstAspect = W / H;
+    let srcX = 0;
+    let srcY = 0;
+    let srcW = imgW;
+    let srcH = imgH;
+    if (srcAspect > dstAspect) {
+      srcW = imgH * dstAspect;
+      srcX = (imgW - srcW) / 2;
+    } else {
+      srcH = imgW / dstAspect;
+      srcY = (imgH - srcH) / 2;
+    }
+
+    const imgPaint = Skia.Paint();
+    imgPaint.setAntiAlias(true);
+
+    if (facing === 'front') {
+      canvas.save();
+      canvas.translate(W, 0);
+      canvas.scale(-1, 1);
+    }
+    canvas.drawImageRect(
+      sourceImage,
+      Skia.XYWHRect(srcX, srcY, srcW, srcH),
+      Skia.XYWHRect(0, 0, W, H),
+      imgPaint,
+    );
+    if (facing === 'front') canvas.restore();
+
+    for (const p of completedPaths) {
+      const paint = Skia.Paint();
+      paint.setColor(Skia.Color(p.color));
+      paint.setStrokeWidth(p.strokeWidth);
+      paint.setStyle(PaintStyle.Stroke);
+      paint.setStrokeCap(StrokeCap.Round);
+      paint.setStrokeJoin(StrokeJoin.Round);
+      paint.setAntiAlias(true);
+      canvas.drawPath(p.path, paint);
+    }
+
+    const snapshot = surface.makeImageSnapshot();
+    const base64 = snapshot.encodeToBase64(ImageFormat.JPEG, 92);
+    return writeBase64Jpeg(base64);
   }
 
   async function handleSendTo() {
@@ -152,27 +221,45 @@ export function PreviewOverlay({
 
   return (
     <View style={StyleSheet.absoluteFill}>
+     
       <Image
         source={{ uri }}
         style={[StyleSheet.absoluteFill, { transform: imageTransform }]}
         resizeMode="cover"
       />
 
-      {completedPaths.length > 0 && (
-        <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
-          {completedPaths.map((p, i) => (
-            <Path
-              key={i}
-              path={p.path}
-              color={p.color}
-              style="stroke"
-              strokeWidth={p.strokeWidth}
-              strokeCap="round"
-              strokeJoin="round"
-            />
-          ))}
-        </Canvas>
-      )}
+      <Canvas
+        ref={compositeRef}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none">
+        {skImage && (
+          <SkiaImage
+            image={skImage}
+            x={0}
+            y={0}
+            width={COMPOSE_W}
+            height={COMPOSE_H}
+            fit="cover"
+            transform={facing === 'front' ? [{ scaleX: -1 }] : undefined}
+            origin={
+              facing === 'front'
+                ? { x: COMPOSE_W / 2, y: COMPOSE_H / 2 }
+                : undefined
+            }
+          />
+        )}
+        {completedPaths.map((p, i) => (
+          <Path
+            key={i}
+            path={p.path}
+            color={p.color}
+            style="stroke"
+            strokeWidth={p.strokeWidth}
+            strokeCap="round"
+            strokeJoin="round"
+          />
+        ))}
+      </Canvas>
 
       {drawingLayer}
 
@@ -246,53 +333,6 @@ export function PreviewOverlay({
       </View>
 
       {topLayer}
-
-      {/*
-        Hidden off-screen composite canvas. Skia renders both the captured
-        image and the completed paths into a single GPU surface; a ref
-        snapshot of that surface is what we actually upload, so the
-        recipient gets the sender's drawings baked in. pointerEvents='none'
-        keeps it invisible to touch handling; opacity:0 keeps it out of sight
-        while remaining mounted so makeImageSnapshot has something to read.
-      */}
-      <View
-        pointerEvents="none"
-        style={{
-          position: 'absolute',
-          width: COMPOSE_W,
-          height: COMPOSE_H,
-          opacity: 0,
-        }}>
-        <Canvas ref={compositeRef} style={{ width: COMPOSE_W, height: COMPOSE_H }}>
-          {skImage && (
-            <SkiaImage
-              image={skImage}
-              x={0}
-              y={0}
-              width={COMPOSE_W}
-              height={COMPOSE_H}
-              fit="cover"
-              transform={facing === 'front' ? [{ scaleX: -1 }] : undefined}
-              origin={
-                facing === 'front'
-                  ? { x: COMPOSE_W / 2, y: COMPOSE_H / 2 }
-                  : undefined
-              }
-            />
-          )}
-          {completedPaths.map((p, i) => (
-            <Path
-              key={i}
-              path={p.path}
-              color={p.color}
-              style="stroke"
-              strokeWidth={p.strokeWidth}
-              strokeCap="round"
-              strokeJoin="round"
-            />
-          ))}
-        </Canvas>
-      </View>
 
       {showRecipients && recipientUri && (
         <RecipientSelector

@@ -15,6 +15,7 @@ web-build/
 .env.local
 
 .gitignore
+
 ios
 android
 

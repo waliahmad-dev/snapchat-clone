@@ -7,6 +7,8 @@ import type { SwipePanel } from '@/types/navigation';
 
 export type BottomTab = 'map' | 'chat' | 'camera' | 'stories' | 'spotlight';
 
+export const BOTTOM_NAV_HEIGHT = 82;
+
 const TAB_COLOR: Record<BottomTab, string> = {
   map: '#00A2FF',
   chat: '#00C2FF',
@@ -29,14 +31,8 @@ export function BottomNav({ active }: Props) {
 
   return (
     <View
-      className="flex-row items-center justify-around bg-black py-3 px-2"
+      className="flex-row items-center justify-around bg-black px-2 py-3"
       style={{ paddingBottom: 22 }}>
-      <TabItem
-        icon="location-outline"
-        color={active === 'map' ? TAB_COLOR.map : '#fff'}
-        active={active === 'map'}
-        activeColor={TAB_COLOR.map}
-      />
       <TabItem
         icon="chatbubble"
         color={active === 'chat' ? TAB_COLOR.chat : '#fff'}
@@ -59,12 +55,6 @@ export function BottomNav({ active }: Props) {
         active={active === 'stories'}
         activeColor={TAB_COLOR.stories}
         onPress={() => go('stories')}
-      />
-      <TabItem
-        icon="play"
-        color={active === 'spotlight' ? TAB_COLOR.spotlight : '#fff'}
-        active={active === 'spotlight'}
-        activeColor={TAB_COLOR.spotlight}
       />
     </View>
   );

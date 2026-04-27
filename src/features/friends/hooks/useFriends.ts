@@ -80,9 +80,21 @@ export function useFriends() {
         })
         .filter(Boolean) as FriendWithStatus[];
 
-      setFriends(enriched.filter((f) => f.status === 'accepted'));
-      setPendingReceived(enriched.filter((f) => f.status === 'pending' && !f.isRequester));
-      setPendingSent(enriched.filter((f) => f.status === 'pending' && f.isRequester));
+      // Dedupe by user id — the OR query above can return both directions of a
+      // pair (A→B and B→A), and we'd otherwise render the same user twice.
+      // Prefer accepted over pending so a confirmed friendship wins.
+      const byUser = new Map<string, FriendWithStatus>();
+      for (const f of enriched) {
+        const existing = byUser.get(f.id);
+        if (!existing || (existing.status !== 'accepted' && f.status === 'accepted')) {
+          byUser.set(f.id, f);
+        }
+      }
+      const deduped = Array.from(byUser.values());
+
+      setFriends(deduped.filter((f) => f.status === 'accepted'));
+      setPendingReceived(deduped.filter((f) => f.status === 'pending' && !f.isRequester));
+      setPendingSent(deduped.filter((f) => f.status === 'pending' && f.isRequester));
     } finally {
       setLoading(false);
     }
