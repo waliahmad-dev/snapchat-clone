@@ -10,19 +10,21 @@ import Animated, {
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useRouter } from 'expo-router';
 import { SCREEN_HEIGHT } from '@constants/dimensions';
+import { useThemeColors } from '@lib/theme/useThemeColors';
 
 const OPEN_DURATION = 260;
 const CLOSE_DURATION = 220;
-const DISMISS_COMMIT = 90;        
-const DISMISS_VELOCITY = 800;     
+const DISMISS_COMMIT = 90;
+const DISMISS_VELOCITY = 800;
 
 interface Props {
   children: React.ReactNode;
   background?: string;
 }
 
-export function TopDownScreen({ children, background = '#fff' }: Props) {
+export function TopDownScreen({ children, background }: Props) {
   const router = useRouter();
+  const c = useThemeColors();
   const translateY = useSharedValue(-SCREEN_HEIGHT);
 
   useEffect(() => {
@@ -76,7 +78,7 @@ export function TopDownScreen({ children, background = '#fff' }: Props) {
   return (
     <GestureDetector gesture={panGesture}>
       <Animated.View
-        style={[styles.sheet, { backgroundColor: background }, sheetStyle]}>
+        style={[styles.sheet, { backgroundColor: background ?? c.bg }, sheetStyle]}>
         {children}
       </Animated.View>
     </GestureDetector>

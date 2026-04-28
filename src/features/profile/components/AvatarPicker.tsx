@@ -5,12 +5,14 @@ import { Avatar } from '@components/ui/Avatar';
 import { uploadToStorage, getPublicUrl } from '@lib/supabase/storage';
 import { useAuthStore } from '@features/auth/store/authStore';
 import { useProfile } from '@features/profile/hooks/useProfile';
+import { useThemeColors } from '@lib/theme/useThemeColors';
 
 interface Props {
   size?: number;
 }
 
 export function AvatarPicker({ size = 96 }: Props) {
+  const c = useThemeColors();
   const profile = useAuthStore((s) => s.profile);
   const { updateProfile } = useProfile();
   const [uploading, setUploading] = React.useState(false);
@@ -40,7 +42,7 @@ export function AvatarPicker({ size = 96 }: Props) {
   return (
     <Pressable onPress={handlePress} className="relative">
       {uploading ? (
-        <ActivityIndicator color="#FFFC00" style={{ width: size, height: size }} />
+        <ActivityIndicator color={c.accent} style={{ width: size, height: size }} />
       ) : (
         <Avatar uri={profile?.avatar_url} name={profile?.display_name ?? '?'} size={size} />
       )}

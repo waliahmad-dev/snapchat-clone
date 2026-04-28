@@ -7,8 +7,10 @@ import { MemoryViewer } from '@features/memories/components/MemoryViewer';
 import type Memory from '@lib/watermelondb/models/Memory';
 import { MEMORIES_GRID_COLUMNS } from '@constants/dimensions';
 import { ScreenHeader } from '@components/ui/ScreenHeader';
+import { useThemeColors } from '@lib/theme/useThemeColors';
 
 export default function MemoriesScreen() {
+  const c = useThemeColors();
   const {
     memories,
     loading,
@@ -29,18 +31,20 @@ export default function MemoriesScreen() {
   );
 
   return (
-    <View className="flex-1 bg-white">
+    <View className="flex-1" style={{ backgroundColor: c.bg }}>
       <ScreenHeader title="Memories" />
 
       {loading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#FFFC00" />
+          <ActivityIndicator color={c.accent} />
         </View>
       ) : memories.length === 0 ? (
         <View className="flex-1 items-center justify-center px-8">
-          <Ionicons name="images-outline" size={56} color="#D1D1D6" />
-          <Text className="text-black text-lg font-bold mt-4 mb-1">No memories yet</Text>
-          <Text className="text-gray-500 text-sm text-center">
+          <Ionicons name="images-outline" size={56} color={c.iconMuted} />
+          <Text className="text-lg font-bold mt-4 mb-1" style={{ color: c.textPrimary }}>
+            No memories yet
+          </Text>
+          <Text className="text-sm text-center" style={{ color: c.textSecondary }}>
             Take snaps and save them here. They'll last forever!
           </Text>
         </View>

@@ -3,9 +3,11 @@ import { View, Text, TextInput, Pressable, Alert, ActivityIndicator } from 'reac
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { signInWithEmail } from '@features/auth/utils/authHelpers';
+import { useThemeColors } from '@lib/theme/useThemeColors';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const c = useThemeColors();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -26,18 +28,23 @@ export default function LoginScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-black">
+    <SafeAreaView className="flex-1" style={{ backgroundColor: c.bg }}>
       <View className="flex-1 px-8 pt-8">
         <Pressable onPress={() => router.back()} className="mb-8">
-          <Text className="text-snap-yellow text-base">← Back</Text>
+          <Text className="text-base" style={{ color: c.accent }}>
+            ← Back
+          </Text>
         </Pressable>
 
-        <Text className="text-white text-3xl font-bold mb-8">Log In</Text>
+        <Text className="text-3xl font-bold mb-8" style={{ color: c.textPrimary }}>
+          Log In
+        </Text>
 
         <TextInput
-          className="bg-snap-surface text-white rounded-xl px-4 py-4 mb-4 text-base"
+          className="rounded-xl px-4 py-4 mb-4 text-base"
+          style={{ backgroundColor: c.inputBg, color: c.textPrimary }}
           placeholder="Email"
-          placeholderTextColor="#8A8A8A"
+          placeholderTextColor={c.placeholder}
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
@@ -45,9 +52,10 @@ export default function LoginScreen() {
           autoComplete="email"
         />
         <TextInput
-          className="bg-snap-surface text-white rounded-xl px-4 py-4 mb-8 text-base"
+          className="rounded-xl px-4 py-4 mb-8 text-base"
+          style={{ backgroundColor: c.inputBg, color: c.textPrimary }}
           placeholder="Password"
-          placeholderTextColor="#8A8A8A"
+          placeholderTextColor={c.placeholder}
           value={password}
           onChangeText={setPassword}
           secureTextEntry
@@ -57,11 +65,14 @@ export default function LoginScreen() {
         <Pressable
           onPress={handleLogin}
           disabled={loading}
-          className="bg-snap-yellow rounded-full py-4 items-center">
+          className="rounded-full py-4 items-center"
+          style={{ backgroundColor: c.accent }}>
           {loading ? (
-            <ActivityIndicator color="#000" />
+            <ActivityIndicator color={c.accentText} />
           ) : (
-            <Text className="text-black font-bold text-base">Log In</Text>
+            <Text className="font-bold text-base" style={{ color: c.accentText }}>
+              Log In
+            </Text>
           )}
         </Pressable>
       </View>

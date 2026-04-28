@@ -4,11 +4,13 @@ import { useRouter } from 'expo-router';
 import { useProfile } from '@features/profile/hooks/useProfile';
 import { ageFromIso, MIN_AGE_YEARS } from '@features/auth/utils/accountActions';
 import { EditFieldScreen, useStyledInput } from '@features/settings/components/EditFieldScreen';
+import { useThemeColors } from '@lib/theme/useThemeColors';
 
 export default function EditBirthdayScreen() {
   const router = useRouter();
   const { profile, updateProfile } = useProfile();
   const s = useStyledInput();
+  const c = useThemeColors();
   const parsed = profile?.date_of_birth
     ? /^(\d{4})-(\d{2})-(\d{2})/.exec(profile.date_of_birth)
     : null;
@@ -59,7 +61,7 @@ export default function EditBirthdayScreen() {
           value={year}
           onChangeText={setYear}
           placeholder="YYYY"
-          placeholderTextColor="#888"
+          placeholderTextColor={c.placeholder}
           keyboardType="number-pad"
           maxLength={4}
           style={[s.input, { flex: 1.2, textAlign: 'center' }]}
@@ -68,7 +70,7 @@ export default function EditBirthdayScreen() {
           value={month}
           onChangeText={setMonth}
           placeholder="MM"
-          placeholderTextColor="#888"
+          placeholderTextColor={c.placeholder}
           keyboardType="number-pad"
           maxLength={2}
           style={[s.input, { flex: 0.8, textAlign: 'center' }]}
@@ -77,7 +79,7 @@ export default function EditBirthdayScreen() {
           value={day}
           onChangeText={setDay}
           placeholder="DD"
-          placeholderTextColor="#888"
+          placeholderTextColor={c.placeholder}
           keyboardType="number-pad"
           maxLength={2}
           style={[s.input, { flex: 0.8, textAlign: 'center' }]}

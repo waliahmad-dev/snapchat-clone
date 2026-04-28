@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable } from 'react-native';
 import type { StoryGroup } from '../hooks/useStories';
+import { useThemeColors } from '@lib/theme/useThemeColors';
 
 interface Props {
   group: StoryGroup;
@@ -9,7 +10,8 @@ interface Props {
 }
 
 export function StoryRing({ group, onPress, size = 64 }: Props) {
-  const ringColor = group.hasUnviewed ? '#FFFC00' : '#3A3A3A';
+  const c = useThemeColors();
+  const ringColor = group.hasUnviewed ? c.accent : c.border;
   const innerSize = size - 8;
 
   return (
@@ -29,17 +31,24 @@ export function StoryRing({ group, onPress, size = 64 }: Props) {
             width: innerSize,
             height: innerSize,
             borderRadius: innerSize / 2,
-            backgroundColor: '#1A1A1A',
+            backgroundColor: c.surfaceElevated,
             alignItems: 'center',
             justifyContent: 'center',
           }}>
           <Text
-            style={{ fontSize: innerSize * 0.45, fontWeight: 'bold', color: '#fff' }}>
+            style={{
+              fontSize: innerSize * 0.45,
+              fontWeight: 'bold',
+              color: c.textPrimary,
+            }}>
             {group.user.display_name[0].toUpperCase()}
           </Text>
         </View>
       </View>
-      <Text className="text-white text-xs mt-1" numberOfLines={1} style={{ maxWidth: size }}>
+      <Text
+        className="text-xs mt-1"
+        numberOfLines={1}
+        style={{ maxWidth: size, color: c.textPrimary }}>
         {group.user.display_name}
       </Text>
     </Pressable>

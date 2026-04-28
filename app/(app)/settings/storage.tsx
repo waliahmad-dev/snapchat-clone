@@ -3,9 +3,11 @@ import { View, Text, Pressable, ScrollView, Alert, ActivityIndicator } from 'rea
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as FileSystem from 'expo-file-system/legacy';
+import { useThemeColors } from '@lib/theme/useThemeColors';
 
 export default function StorageScreen() {
   const router = useRouter();
+  const c = useThemeColors();
   const [cacheSize, setCacheSize] = useState<string>('Calculating…');
   const [clearing, setClearing] = useState(false);
 
@@ -56,40 +58,57 @@ export default function StorageScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-black">
+    <SafeAreaView className="flex-1" style={{ backgroundColor: c.bg }}>
       <View className="flex-row items-center px-4 py-4">
         <Pressable onPress={() => router.back()}>
-          <Text className="text-white text-2xl">‹</Text>
+          <Text className="text-2xl" style={{ color: c.textPrimary }}>
+            ‹
+          </Text>
         </Pressable>
-        <Text className="text-white font-bold text-xl ml-4">Storage</Text>
+        <Text className="font-bold text-xl ml-4" style={{ color: c.textPrimary }}>
+          Storage
+        </Text>
       </View>
 
       <ScrollView>
-        <View className="mt-4 bg-snap-surface rounded-xl mx-4">
-          <View className="px-4 py-4 border-b border-white/5 flex-row items-center justify-between">
+        <View
+          className="mt-4 rounded-xl mx-4"
+          style={{ backgroundColor: c.surfaceElevated }}>
+          <View
+            className="px-4 py-4 border-b flex-row items-center justify-between"
+            style={{ borderColor: c.divider }}>
             <View>
-              <Text className="text-white font-semibold">Cache</Text>
-              <Text className="text-snap-gray text-sm">Cached images and media</Text>
+              <Text className="font-semibold" style={{ color: c.textPrimary }}>
+                Cache
+              </Text>
+              <Text className="text-sm" style={{ color: c.textSecondary }}>
+                Cached images and media
+              </Text>
             </View>
-            <Text className="text-snap-gray">{cacheSize}</Text>
+            <Text style={{ color: c.textSecondary }}>{cacheSize}</Text>
           </View>
 
           <Pressable
             onPress={clearCache}
             disabled={clearing}
-            className="px-4 py-4 flex-row items-center justify-between active:bg-white/5">
+            android_ripple={{ color: c.rowPress }}
+            className="px-4 py-4 flex-row items-center justify-between">
             {clearing ? (
-              <ActivityIndicator color="#FFFC00" />
+              <ActivityIndicator color={c.accent} />
             ) : (
               <>
-                <Text className="text-snap-yellow font-semibold">Clear Cache</Text>
-                <Text className="text-white/30">›</Text>
+                <Text className="font-semibold" style={{ color: c.accent }}>
+                  Clear Cache
+                </Text>
+                <Text style={{ color: c.textMuted }}>›</Text>
               </>
             )}
           </Pressable>
         </View>
 
-        <Text className="text-snap-gray text-xs px-8 mt-4 leading-5">
+        <Text
+          className="text-xs px-8 mt-4 leading-5"
+          style={{ color: c.textSecondary }}>
           Clearing the cache will not delete your memories or saved snaps.
           They are stored securely in the cloud.
         </Text>

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useId, useState, useCallback } from 'react';
 import { supabase } from '@lib/supabase/client';
 import { useAuthStore } from '@features/auth/store/authStore';
 import type { DbMessage } from '@/types/database';
@@ -6,6 +6,7 @@ import { MESSAGE_PAGE_SIZE } from '@constants/config';
 
 export function useMessages(conversationId: string) {
   const profile = useAuthStore((s) => s.profile);
+  const instanceId = useId();
   const [messages, setMessages] = useState<DbMessage[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -14,7 +15,7 @@ export function useMessages(conversationId: string) {
     loadMessages();
 
     const sub = supabase
-      .channel(`messages:${conversationId}`)
+      .channel(`messages:${conversationId}:${instanceId}`)
       .on(
         'postgres_changes',
         {
@@ -51,7 +52,7 @@ export function useMessages(conversationId: string) {
     return () => {
       supabase.removeChannel(sub);
     };
-  }, [conversationId, profile?.id]);
+  }, [conversationId, profile?.id, instanceId]);
 
   async function loadMessages() {
     setLoading(true);

@@ -3,6 +3,7 @@ import { View, Text, FlatList, Pressable, ActivityIndicator } from 'react-native
 import { Ionicons } from '@expo/vector-icons';
 import { Avatar } from '@components/ui/Avatar';
 import { useFriendRequest } from '../hooks/useFriendRequest';
+import { useThemeColors } from '@lib/theme/useThemeColors';
 import type { FriendWithStatus } from '../hooks/useFriends';
 
 interface Props {
@@ -20,6 +21,7 @@ function RequestItem({
   onAccepted?: () => void;
   onDeclined?: () => void;
 }) {
+  const c = useThemeColors();
   const { acceptRequest, declineRequest } = useFriendRequest();
   const [loading, setLoading] = React.useState(false);
 
@@ -44,26 +46,36 @@ function RequestItem({
   }
 
   return (
-    <View className="flex-row items-center px-4 py-3 bg-white">
+    <View
+      className="flex-row items-center px-4 py-3"
+      style={{ backgroundColor: c.bg }}>
       <Avatar uri={request.avatar_url} name={request.display_name} size={44} />
       <View className="flex-1 ml-3">
-        <Text className="text-black font-semibold">{request.display_name}</Text>
-        <Text className="text-gray-500 text-sm">@{request.username}</Text>
+        <Text className="font-semibold" style={{ color: c.textPrimary }}>
+          {request.display_name}
+        </Text>
+        <Text className="text-sm" style={{ color: c.textSecondary }}>
+          @{request.username}
+        </Text>
       </View>
       {loading ? (
-        <ActivityIndicator color="#FFFC00" size="small" />
+        <ActivityIndicator color={c.accent} size="small" />
       ) : (
         <View className="flex-row items-center gap-2">
           <Pressable
             onPress={decline}
             hitSlop={8}
-            className="w-9 h-9 rounded-full bg-gray-100 items-center justify-center">
-            <Ionicons name="close" size={18} color="#111" />
+            className="w-9 h-9 rounded-full items-center justify-center"
+            style={{ backgroundColor: c.surfaceElevated }}>
+            <Ionicons name="close" size={18} color={c.icon} />
           </Pressable>
           <Pressable
             onPress={accept}
-            className="bg-snap-yellow rounded-full px-4 py-2">
-            <Text className="text-black text-xs font-bold">Accept</Text>
+            className="rounded-full px-4 py-2"
+            style={{ backgroundColor: c.accent }}>
+            <Text className="text-xs font-bold" style={{ color: c.accentText }}>
+              Accept
+            </Text>
           </Pressable>
         </View>
       )}
@@ -72,12 +84,15 @@ function RequestItem({
 }
 
 export function FriendRequests({ requests, onAccepted, onDeclined }: Props) {
+  const c = useThemeColors();
   if (requests.length === 0) return null;
 
   return (
-    <View className="bg-white">
+    <View style={{ backgroundColor: c.bg }}>
       <View className="px-4 pt-4 pb-2">
-        <Text className="text-gray-500 text-xs font-semibold uppercase tracking-widest">
+        <Text
+          className="text-xs font-semibold uppercase tracking-widest"
+          style={{ color: c.textSecondary }}>
           Friend Requests · {requests.length}
         </Text>
       </View>
@@ -88,7 +103,9 @@ export function FriendRequests({ requests, onAccepted, onDeclined }: Props) {
           <RequestItem request={item} onAccepted={onAccepted} onDeclined={onDeclined} />
         )}
         scrollEnabled={false}
-        ItemSeparatorComponent={() => <View className="h-px bg-gray-100 ml-20" />}
+        ItemSeparatorComponent={() => (
+          <View className="h-px ml-20" style={{ backgroundColor: c.divider }} />
+        )}
       />
     </View>
   );

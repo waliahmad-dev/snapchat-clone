@@ -28,7 +28,7 @@ import { useAuthStore } from '@features/auth/store/authStore';
 import type { StoryGroup } from '../hooks/useStories';
 import type { DbUser } from '@/types/database';
 
-const { height: SCREEN_H } = Dimensions.get('window');
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 const STORY_DURATION_MS = 5000;
 const VIEWERS_PANEL_HEIGHT = SCREEN_H * 0.65;
 
@@ -50,6 +50,7 @@ export function StoryViewer({ storyGroup, onClose, onRecordView }: Props) {
   const [urlCache, setUrlCache] = useState<Record<string, string>>({});
   const [viewers, setViewers] = useState<ViewerRow[]>([]);
   const [viewersLoading, setViewersLoading] = useState(false);
+  const [paused, setPaused] = useState(false);
   const hasFetchedRef = useRef<Set<string>>(new Set());
 
   const currentStory = storyGroup.stories[currentIndex];
@@ -60,7 +61,7 @@ export function StoryViewer({ storyGroup, onClose, onRecordView }: Props) {
 
   useEffect(() => {
     loadUrl(currentStory.media_url);
-    onRecordView(currentStory.id);
+    if (!isOwn) onRecordView(currentStory.id);
     setViewers([]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentIndex]);
@@ -229,9 +230,35 @@ export function StoryViewer({ storyGroup, onClose, onRecordView }: Props) {
       }
     });
 
+  const tapNav = Gesture.Tap()
+    .maxDuration(220)
+    .onEnd((e, success) => {
+      'worklet';
+      if (!success) return;
+      if (e.x < SCREEN_W * 0.35) runOnJS(goPrev)();
+      else runOnJS(goNext)();
+    });
+
+  const holdPause = Gesture.LongPress()
+    .minDuration(180)
+    .maxDistance(20)
+    .onStart(() => {
+      'worklet';
+      runOnJS(setPaused)(true);
+    })
+    .onFinalize(() => {
+      'worklet';
+      runOnJS(setPaused)(false);
+    });
+
   const storyGestures = useMemo(
-    () => Gesture.Race(swipeDownToClose, swipeUpToOpenPanel),
-    [swipeDownToClose, swipeUpToOpenPanel]
+    () =>
+      Gesture.Race(
+        swipeDownToClose,
+        swipeUpToOpenPanel,
+        Gesture.Exclusive(holdPause, tapNav),
+      ),
+    [swipeDownToClose, swipeUpToOpenPanel, holdPause, tapNav]
   );
 
   const currentUrl = urlCache[currentStory?.media_url];
@@ -250,11 +277,6 @@ export function StoryViewer({ storyGroup, onClose, onRecordView }: Props) {
           ) : (
             <View style={StyleSheet.absoluteFill} className="bg-snap-surface" />
           )}
-
-          <View style={styles.tapZones} pointerEvents="box-none">
-            <Pressable style={{ flex: 0.35, height: '100%' }} onPress={goPrev} />
-            <Pressable style={{ flex: 0.65, height: '100%' }} onPress={goNext} />
-          </View>
         </View>
       </GestureDetector>
 
@@ -263,6 +285,7 @@ export function StoryViewer({ storyGroup, onClose, onRecordView }: Props) {
           count={storyGroup.stories.length}
           currentIndex={currentIndex}
           duration={STORY_DURATION_MS}
+          paused={paused || panelOpen}
           onComplete={goNext}
         />
 
@@ -385,14 +408,6 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-  },
-  tapZones: {
-    position: 'absolute',
-    top: 100,
-    bottom: 80,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
   },
   bottomHint: {
     position: 'absolute',

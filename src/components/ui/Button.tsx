@@ -1,5 +1,6 @@
 import React from 'react';
-import { Pressable, Text, ActivityIndicator } from 'react-native';
+import { Pressable, Text, ActivityIndicator, type ViewStyle, type TextStyle } from 'react-native';
+import { useThemeColors, type ThemeColors } from '@lib/theme/useThemeColors';
 
 interface Props {
   label: string;
@@ -11,27 +12,46 @@ interface Props {
   fullWidth?: boolean;
 }
 
-const variantStyles: Record<string, string> = {
-  primary: 'bg-snap-yellow',
-  secondary: 'bg-snap-surface border border-white/20',
-  ghost: 'bg-transparent',
-  danger: 'bg-snap-danger',
-};
+function variantStyle(variant: NonNullable<Props['variant']>, c: ThemeColors): {
+  container: ViewStyle;
+  text: TextStyle;
+  spinner: string;
+} {
+  switch (variant) {
+    case 'primary':
+      return {
+        container: { backgroundColor: c.accent },
+        text: { color: c.accentText, fontWeight: '700' },
+        spinner: c.accentText,
+      };
+    case 'secondary':
+      return {
+        container: { backgroundColor: c.surfaceElevated, borderWidth: 1, borderColor: c.border },
+        text: { color: c.textPrimary, fontWeight: '600' },
+        spinner: c.accent,
+      };
+    case 'ghost':
+      return {
+        container: { backgroundColor: 'transparent' },
+        text: { color: c.textPrimary, fontWeight: '600' },
+        spinner: c.accent,
+      };
+    case 'danger':
+      return {
+        container: { backgroundColor: c.danger },
+        text: { color: '#FFFFFF', fontWeight: '700' },
+        spinner: '#FFFFFF',
+      };
+  }
+}
 
-const textStyles: Record<string, string> = {
-  primary: 'text-black font-bold',
-  secondary: 'text-white font-semibold',
-  ghost: 'text-white font-semibold',
-  danger: 'text-white font-bold',
-};
-
-const sizeStyles: Record<string, string> = {
+const sizeClass: Record<NonNullable<Props['size']>, string> = {
   sm: 'px-4 py-2 rounded-lg',
   md: 'px-6 py-3 rounded-xl',
   lg: 'px-8 py-4 rounded-2xl',
 };
 
-const textSizeStyles: Record<string, string> = {
+const textSizeClass: Record<NonNullable<Props['size']>, string> = {
   sm: 'text-sm',
   md: 'text-base',
   lg: 'text-lg',
@@ -46,23 +66,22 @@ export function Button({
   disabled = false,
   fullWidth = false,
 }: Props) {
+  const c = useThemeColors();
+  const style = variantStyle(variant, c);
   const isDisabled = disabled || loading;
 
   return (
     <Pressable
       onPress={onPress}
       disabled={isDisabled}
-      className={`
-        items-center justify-center
-        ${variantStyles[variant]}
-        ${sizeStyles[size]}
-        ${fullWidth ? 'w-full' : ''}
-        ${isDisabled ? 'opacity-50' : 'opacity-100'}
-      `}>
+      style={[style.container, { opacity: isDisabled ? 0.5 : 1 }]}
+      className={`items-center justify-center ${sizeClass[size]} ${fullWidth ? 'w-full' : ''}`}>
       {loading ? (
-        <ActivityIndicator color={variant === 'primary' ? '#000' : '#FFFC00'} size="small" />
+        <ActivityIndicator color={style.spinner} size="small" />
       ) : (
-        <Text className={`${textStyles[variant]} ${textSizeStyles[size]}`}>{label}</Text>
+        <Text style={style.text} className={textSizeClass[size]}>
+          {label}
+        </Text>
       )}
     </Pressable>
   );

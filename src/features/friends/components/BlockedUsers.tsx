@@ -3,6 +3,7 @@ import { View, Text, FlatList, Pressable, Alert, ActivityIndicator } from 'react
 import { supabase } from '@lib/supabase/client';
 import { Avatar } from '@components/ui/Avatar';
 import { useAuthStore } from '@features/auth/store/authStore';
+import { useThemeColors } from '@lib/theme/useThemeColors';
 import type { DbUser } from '@/types/database';
 
 interface BlockedEntry extends DbUser {
@@ -10,6 +11,7 @@ interface BlockedEntry extends DbUser {
 }
 
 export function BlockedUsers() {
+  const c = useThemeColors();
   const profile = useAuthStore((s) => s.profile);
   const [blocked, setBlocked] = useState<BlockedEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,7 +65,7 @@ export function BlockedUsers() {
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center">
-        <ActivityIndicator color="#FFFC00" />
+        <ActivityIndicator color={c.accent} />
       </View>
     );
   }
@@ -71,7 +73,9 @@ export function BlockedUsers() {
   if (blocked.length === 0) {
     return (
       <View className="flex-1 items-center justify-center px-8">
-        <Text className="text-white/40 text-center">No blocked users</Text>
+        <Text className="text-center" style={{ color: c.textMuted }}>
+          No blocked users
+        </Text>
       </View>
     );
   }
@@ -81,16 +85,25 @@ export function BlockedUsers() {
       data={blocked}
       keyExtractor={(item) => item.id}
       renderItem={({ item }) => (
-        <View className="flex-row items-center px-4 py-3 border-b border-white/5">
+        <View
+          className="flex-row items-center px-4 py-3 border-b"
+          style={{ borderColor: c.divider }}>
           <Avatar uri={item.avatar_url} name={item.display_name} size={44} />
           <View className="flex-1 ml-3">
-            <Text className="text-white font-semibold">{item.display_name}</Text>
-            <Text className="text-snap-gray text-sm">@{item.username}</Text>
+            <Text className="font-semibold" style={{ color: c.textPrimary }}>
+              {item.display_name}
+            </Text>
+            <Text className="text-sm" style={{ color: c.textSecondary }}>
+              @{item.username}
+            </Text>
           </View>
           <Pressable
             onPress={() => unblock(item.blockId, item.display_name)}
-            className="bg-white/10 rounded-full px-3 py-2">
-            <Text className="text-white text-xs font-semibold">Unblock</Text>
+            className="rounded-full px-3 py-2"
+            style={{ backgroundColor: c.surfaceElevated }}>
+            <Text className="text-xs font-semibold" style={{ color: c.textPrimary }}>
+              Unblock
+            </Text>
           </Pressable>
         </View>
       )}

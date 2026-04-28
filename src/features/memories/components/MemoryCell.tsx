@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Image, Pressable, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Pressable, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { Image } from 'expo-image';
 import type Memory from '@lib/watermelondb/models/Memory';
 import { SCREEN_WIDTH, MEMORIES_GRID_COLUMNS } from '@constants/dimensions';
+import { useThemeColors } from '@lib/theme/useThemeColors';
+import { thumbCacheKey } from '@features/memories/lib/memoryImageCache';
 
 const CELL_WIDTH = (SCREEN_WIDTH - (MEMORIES_GRID_COLUMNS + 1) * 2) / MEMORIES_GRID_COLUMNS;
 const CELL_HEIGHT = (CELL_WIDTH * 16) / 9;
@@ -14,6 +17,7 @@ interface Props {
 }
 
 export function MemoryCell({ memory, getUrl, onPress, onLongPress }: Props) {
+  const c = useThemeColors();
   const [uri, setUri] = useState<string | null>(null);
 
   useEffect(() => {
@@ -26,16 +30,24 @@ export function MemoryCell({ memory, getUrl, onPress, onLongPress }: Props) {
     <Pressable
       onPress={() => onPress(memory)}
       onLongPress={() => onLongPress(memory)}
-      style={styles.cell}>
+      style={[styles.cell, { backgroundColor: c.surfaceElevated }]}>
       {uri ? (
-        <Image source={{ uri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+        <Image
+          source={{ uri, cacheKey: thumbCacheKey(memory) }}
+          style={StyleSheet.absoluteFill}
+          contentFit="cover"
+          transition={120}
+          recyclingKey={memory.id}
+        />
       ) : (
-        <View style={[StyleSheet.absoluteFill, styles.placeholder]} />
+        <View
+          style={[StyleSheet.absoluteFill, { backgroundColor: c.surfaceElevated }]}
+        />
       )}
       {isPending && (
         <View style={[StyleSheet.absoluteFill, styles.uploadOverlay]}>
-          <ActivityIndicator color="#fff" size="small" />
-          <Text className="text-white text-xs mt-1">
+          <ActivityIndicator color="#FFFFFF" size="small" />
+          <Text style={{ color: '#FFFFFF', fontSize: 12, marginTop: 4 }}>
             {memory.uploadStatus === 'uploading' ? 'Uploading…' : 'Pending'}
           </Text>
         </View>
@@ -56,10 +68,6 @@ const styles = StyleSheet.create({
     margin: 1,
     borderRadius: 6,
     overflow: 'hidden',
-    backgroundColor: '#1A1A1A',
-  },
-  placeholder: {
-    backgroundColor: '#1A1A1A',
   },
   uploadOverlay: {
     backgroundColor: 'rgba(0,0,0,0.5)',

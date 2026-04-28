@@ -8,12 +8,16 @@ import { useStreak } from '../hooks/useStreak';
 import { shortTimeAgo } from '../utils/messageHelpers';
 import { useCameraStore } from '@features/camera/store/cameraStore';
 import { Avatar } from '@components/ui/Avatar';
+import { useThemeColors, type ThemeColors } from '@lib/theme/useThemeColors';
 
 interface Props {
   conversation: ConversationWithPartner;
 }
 
-function describeStatus(status: ConversationStatus): {
+function describeStatus(
+  status: ConversationStatus,
+  c: ThemeColors,
+): {
   label: string;
   icon: React.ComponentProps<typeof Ionicons>['name'];
   color: string;
@@ -22,7 +26,7 @@ function describeStatus(status: ConversationStatus): {
     case 'sent':
       return { label: 'Sent', icon: 'send', color: '#00C2FF' };
     case 'opened':
-      return { label: 'Opened', icon: 'checkmark-done', color: '#8E8E93' };
+      return { label: 'Opened', icon: 'checkmark-done', color: c.textMuted };
     case 'replied':
       return { label: 'Replied', icon: 'return-down-back', color: '#B14CFF' };
     case 'received':
@@ -35,10 +39,11 @@ function describeStatus(status: ConversationStatus): {
 
 export function ConversationRow({ conversation }: Props) {
   const router = useRouter();
+  const c = useThemeColors();
   const profile = useAuthStore((s) => s.profile);
   const streak = useStreak(profile?.id ?? '', conversation.partner.id);
 
-  const { label, icon, color } = describeStatus(conversation.status);
+  const { label, icon, color } = describeStatus(conversation.status, c);
   const timeLabel = shortTimeAgo(conversation.lastActivityAt);
 
   return (
@@ -56,7 +61,8 @@ export function ConversationRow({ conversation }: Props) {
           },
         })
       }
-      className="flex-row items-center px-4 py-3 active:bg-gray-50">
+      android_ripple={{ color: c.rowPress }}
+      className="flex-row items-center px-4 py-3">
       <Avatar
         uri={conversation.partner.avatar_url ?? null}
         name={conversation.partner.display_name}
@@ -66,13 +72,16 @@ export function ConversationRow({ conversation }: Props) {
       <View className="flex-1 mx-3">
         <View className="flex-row items-center">
           <Text
-            className="text-black font-semibold text-base flex-shrink"
+            className="font-semibold text-base flex-shrink"
+            style={{ color: c.textPrimary }}
             numberOfLines={1}>
             {conversation.partner.display_name}
           </Text>
           {conversation.unread_count > 0 && (
-            <View className="ml-2 min-w-[18px] h-[18px] rounded-full bg-red-500 px-1.5 items-center justify-center">
-              <Text className="text-white font-bold text-[10px]">
+            <View
+              className="ml-2 min-w-[18px] h-[18px] rounded-full px-1.5 items-center justify-center"
+              style={{ backgroundColor: c.danger }}>
+              <Text className="font-bold text-[10px]" style={{ color: '#FFFFFF' }}>
                 {conversation.unread_count > 99 ? '99+' : conversation.unread_count}
               </Text>
             </View>
@@ -83,7 +92,9 @@ export function ConversationRow({ conversation }: Props) {
           <Text
             className="text-sm"
             numberOfLines={1}
-            style={{ color: conversation.status === 'empty' ? '#FFC300' : '#6E6E73' }}>
+            style={{
+              color: conversation.status === 'empty' ? '#FFC300' : c.textSecondary,
+            }}>
             {label}
             {timeLabel ? ` · ${timeLabel}` : ''}
             {streak && streak.count > 1 ? ` · ${streak.count}🔥` : ''}
@@ -91,7 +102,6 @@ export function ConversationRow({ conversation }: Props) {
         </View>
       </View>
 
-   
       <Pressable
         hitSlop={6}
         onPress={(e) => {
@@ -103,7 +113,7 @@ export function ConversationRow({ conversation }: Props) {
           router.push('/(app)/camera');
         }}
         className="w-9 h-9 rounded-full items-center justify-center">
-        <Ionicons name="camera-outline" size={22} color="#111" />
+        <Ionicons name="camera-outline" size={22} color={c.icon} />
       </Pressable>
     </Pressable>
   );

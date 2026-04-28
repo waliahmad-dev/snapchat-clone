@@ -1,4 +1,5 @@
 import { Stack } from 'expo-router';
+import { useThemeColors } from '@lib/theme/useThemeColors';
 
 const SHEET_TRANSITION = {
   animation: 'slide_from_bottom' as const,
@@ -14,12 +15,28 @@ const PUSH_TRANSITION = {
 };
 
 export default function AppLayout() {
+  const c = useThemeColors();
   return (
-    <Stack screenOptions={{ headerShown: false, animation: 'none' }}>
-      <Stack.Screen name="camera" options={{ animation: 'none' }} />
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        animation: 'none',
+        contentStyle: { backgroundColor: c.bg },
+      }}>
+      <Stack.Screen
+        name="camera"
+        options={{ animation: 'none', contentStyle: { backgroundColor: '#000000' } }}
+      />
 
       <Stack.Screen name="chat" options={PUSH_TRANSITION} />
-      <Stack.Screen name="stories" options={{ animation: 'fade', animationDuration: 180 }} />
+      <Stack.Screen
+        name="stories"
+        options={{
+          animation: 'fade',
+          animationDuration: 180,
+          contentStyle: { backgroundColor: '#000000' },
+        }}
+      />
 
       <Stack.Screen name="profile/index" options={{ animation: 'none' }} />
       <Stack.Screen name="profile/[userId]" options={PUSH_TRANSITION} />

@@ -5,12 +5,14 @@ import { useProfile } from '@features/profile/hooks/useProfile';
 import { PHONE_REGEX, updatePhone } from '@features/auth/utils/accountActions';
 import { useAuthStore } from '@features/auth/store/authStore';
 import { EditFieldScreen, useStyledInput } from '@features/settings/components/EditFieldScreen';
+import { useThemeColors } from '@lib/theme/useThemeColors';
 
 export default function EditPhoneScreen() {
   const router = useRouter();
   const { profile, refresh } = useProfile();
   const userId = useAuthStore((s) => s.user?.id ?? '');
   const s = useStyledInput();
+  const c = useThemeColors();
   const [phone, setPhone] = useState(profile?.phone ?? '');
   const [saving, setSaving] = useState(false);
 
@@ -36,7 +38,7 @@ export default function EditPhoneScreen() {
   return (
     <EditFieldScreen
       title="Mobile Number"
-      description="Add a number so friends can find you. Numbers must be unique — release it from another account first if needed."
+      description="Add a number so friends can find you"
       onSave={save}
       saveDisabled={!canSave}
       saving={saving}>
@@ -44,7 +46,7 @@ export default function EditPhoneScreen() {
         value={phone}
         onChangeText={setPhone}
         placeholder="+1 555 123 4567"
-        placeholderTextColor="#888"
+        placeholderTextColor={c.placeholder}
         keyboardType="phone-pad"
         maxLength={16}
         autoFocus

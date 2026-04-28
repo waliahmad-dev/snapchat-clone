@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import { useSnapScore } from '../hooks/useSnapScore';
+import { useThemeColors } from '@lib/theme/useThemeColors';
 
 interface Props {
   userId?: string;
@@ -8,15 +9,18 @@ interface Props {
 }
 
 export function SnapScore({ userId, initialScore = 0 }: Props) {
+  const c = useThemeColors();
   const score = useSnapScore(userId);
   const displayScore = score || initialScore;
 
   return (
     <View className="items-center">
-      <Text className="text-white font-bold text-xl">
+      <Text className="font-bold text-xl" style={{ color: c.textPrimary }}>
         {displayScore.toLocaleString()}
       </Text>
-      <Text className="text-snap-gray text-xs">Snap Score</Text>
+      <Text className="text-xs" style={{ color: c.textSecondary }}>
+        Snap Score
+      </Text>
     </View>
   );
 }

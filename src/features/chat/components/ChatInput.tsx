@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useReplyStore } from '../store/replyStore';
+import { useThemeColors } from '@lib/theme/useThemeColors';
 
 interface Props {
   onSend: (text: string, replyToMessageId?: string | null) => Promise<void>;
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export function ChatInput({ onSend, onCameraPress }: Props) {
+  const c = useThemeColors();
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
 
@@ -43,33 +45,45 @@ export function ChatInput({ onSend, onCameraPress }: Props) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={90}>
       {replyTarget && (
-        <View className="flex-row items-center px-3 py-2 bg-snap-surface border-t border-white/5">
-          <View className="w-1 h-8 bg-snap-yellow rounded-full mr-3" />
+        <View
+          className="flex-row items-center px-3 py-2 border-t"
+          style={{ backgroundColor: c.surface, borderColor: c.divider }}>
+          <View
+            className="w-1 h-8 rounded-full mr-3"
+            style={{ backgroundColor: c.accent }}
+          />
           <View className="flex-1">
-            <Text className="text-snap-yellow text-xs font-bold">
+            <Text className="text-xs font-bold" style={{ color: c.accent }}>
               Replying to {replyTarget.authorName}
             </Text>
-            <Text className="text-white/70 text-xs mt-0.5" numberOfLines={1}>
+            <Text
+              className="text-xs mt-0.5"
+              numberOfLines={1}
+              style={{ color: c.textSecondary }}>
               {replyTarget.preview}
             </Text>
           </View>
           <Pressable onPress={clearReply} hitSlop={10} className="ml-2 p-1">
-            <Ionicons name="close" size={18} color="#fff" />
+            <Ionicons name="close" size={18} color={c.icon} />
           </Pressable>
         </View>
       )}
 
-      <View className="flex-row items-center px-3 py-3 border-t border-white/10 bg-black">
+      <View
+        className="flex-row items-center px-3 py-3 border-t"
+        style={{ backgroundColor: c.bg, borderColor: c.border }}>
         <Pressable
           onPress={onCameraPress}
-          className="w-10 h-10 rounded-full bg-snap-surface items-center justify-center mr-2">
-          <Ionicons name="camera" size={20} color="#fff" />
+          className="w-10 h-10 rounded-full items-center justify-center mr-2"
+          style={{ backgroundColor: c.surfaceElevated }}>
+          <Ionicons name="camera" size={20} color={c.icon} />
         </Pressable>
 
         <TextInput
-          className="flex-1 bg-snap-surface text-white rounded-full px-4 py-2 text-base"
+          className="flex-1 rounded-full px-4 py-2 text-base"
+          style={{ backgroundColor: c.inputBg, color: c.textPrimary }}
           placeholder={replyTarget ? `Reply to ${replyTarget.authorName}…` : 'Send a chat…'}
-          placeholderTextColor="#8A8A8A"
+          placeholderTextColor={c.placeholder}
           value={text}
           onChangeText={setText}
           multiline
@@ -83,8 +97,9 @@ export function ChatInput({ onSend, onCameraPress }: Props) {
           <Pressable
             onPress={handleSend}
             disabled={sending}
-            className="w-10 h-10 rounded-full bg-snap-yellow items-center justify-center ml-2">
-            <Ionicons name="arrow-up" size={20} color="#000" />
+            className="w-10 h-10 rounded-full items-center justify-center ml-2"
+            style={{ backgroundColor: c.accent }}>
+            <Ionicons name="arrow-up" size={20} color={c.accentText} />
           </Pressable>
         )}
       </View>

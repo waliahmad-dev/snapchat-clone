@@ -1,7 +1,6 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
-  Image,
   Pressable,
   Text,
   StyleSheet,
@@ -12,6 +11,7 @@ import {
   FlatList,
   type ViewToken,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -23,12 +23,15 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
+import { formatDistanceToNow } from 'date-fns/formatDistanceToNow';
+import { differenceInDays, format } from 'date-fns';
 import { supabase } from '@lib/supabase/client';
 import { uploadToStorage } from '@lib/supabase/storage';
 import { processImage } from '@lib/imageManipulator/processor';
 import { useAuthStore } from '@features/auth/store/authStore';
 import { RecipientSelector } from '@features/camera/components/RecipientSelector';
 import type Memory from '@lib/watermelondb/models/Memory';
+import { fullCacheKey, warmFullsAround } from '@features/memories/lib/memoryImageCache';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 const DISMISS_DISTANCE = 140;
@@ -73,16 +76,12 @@ export function MemoryViewer({
     .onUpdate((e) => {
       'worklet';
       translateY.value = e.translationY;
-      backdropOpacity.value = Math.max(
-        0.2,
-        1 - Math.abs(e.translationY) / (SCREEN_H * 0.9),
-      );
+      backdropOpacity.value = Math.max(0.2, 1 - Math.abs(e.translationY) / (SCREEN_H * 0.9));
     })
     .onEnd((e) => {
       'worklet';
       const shouldDismiss =
-        Math.abs(e.translationY) > DISMISS_DISTANCE ||
-        Math.abs(e.velocityY) > DISMISS_VELOCITY;
+        Math.abs(e.translationY) > DISMISS_DISTANCE || Math.abs(e.velocityY) > DISMISS_VELOCITY;
 
       if (shouldDismiss) {
         const direction = e.translationY >= 0 ? SCREEN_H : -SCREEN_H;
@@ -91,7 +90,7 @@ export function MemoryViewer({
           { duration: 180, easing: Easing.in(Easing.cubic) },
           (finished) => {
             if (finished) runOnJS(onClose)();
-          },
+          }
         );
         backdropOpacity.value = withTiming(0, { duration: 180 });
       } else {
@@ -125,6 +124,15 @@ export function MemoryViewer({
       });
     }
   }, [memories.length, currentIndex, onClose]);
+
+  useEffect(() => {
+    warmFullsAround(memories, currentIndex, 1).catch(() => {});
+  }, [memories, currentIndex]);
+
+  const timestampLabel = useMemo(
+    () => formatMemoryTimestamp(currentMemory?.createdAt),
+    [currentMemory?.createdAt]
+  );
 
   const handleDelete = useCallback(() => {
     Alert.alert('Delete memory?', 'This cannot be undone.', [
@@ -207,25 +215,32 @@ export function MemoryViewer({
             </Animated.View>
           </GestureDetector>
 
-          {memories.length > 1 && (
-            <View pointerEvents="none" style={styles.pageIndicator}>
-              <Text className="text-white font-bold text-xs">
-                {currentIndex + 1} / {memories.length}
-              </Text>
-            </View>
-          )}
-
           <SafeAreaView edges={['top']} style={styles.topBar} pointerEvents="box-none">
             <Pressable
               onPress={onClose}
               hitSlop={12}
-              className="w-10 h-10 rounded-full bg-black/50 items-center justify-center">
+              className="h-10 w-10 items-center justify-center rounded-full bg-black/50">
               <Ionicons name="close" size={22} color="#fff" />
             </Pressable>
+            <View style={styles.topCenter} pointerEvents="none">
+              {timestampLabel && (
+                <View style={styles.timestampPill}>
+                  <Ionicons name="time-outline" size={12} color="#fff" />
+                  <Text style={styles.timestampText}>{timestampLabel}</Text>
+                </View>
+              )}
+              {memories.length > 1 && (
+                <View style={styles.pageIndicator}>
+                  <Text className="text-[11px] font-bold text-white">
+                    {currentIndex + 1} / {memories.length}
+                  </Text>
+                </View>
+              )}
+            </View>
             <Pressable
               onPress={handleDelete}
               hitSlop={12}
-              className="w-10 h-10 rounded-full bg-black/50 items-center justify-center">
+              className="h-10 w-10 items-center justify-center rounded-full bg-black/50">
               <Ionicons name="trash-outline" size={20} color="#fff" />
             </Pressable>
           </SafeAreaView>
@@ -245,9 +260,6 @@ export function MemoryViewer({
                 onPress={handleSendToFriends}
               />
             </View>
-            <Text className="text-white/50 text-[11px] mt-2 text-center">
-              Swipe horizontally to browse · Swipe up/down to close
-            </Text>
           </SafeAreaView>
 
           {showRecipients && recipientUri && (
@@ -294,9 +306,11 @@ function MemoryPage({
     <View style={styles.page}>
       {url && (
         <Image
-          source={{ uri: url }}
+          source={{ uri: url, cacheKey: fullCacheKey(memory) }}
           style={StyleSheet.absoluteFill}
-          resizeMode="contain"
+          contentFit="contain"
+          transition={150}
+          recyclingKey={memory.id}
           onLoad={() => setReady(true)}
         />
       )}
@@ -307,6 +321,16 @@ function MemoryPage({
       )}
     </View>
   );
+}
+
+function formatMemoryTimestamp(createdAt: number | undefined): string | null {
+  if (!createdAt) return null;
+  const days = differenceInDays(Date.now(), createdAt);
+  if (days >= 7) {
+    const sameYear = new Date(createdAt).getFullYear() === new Date().getFullYear();
+    return format(createdAt, sameYear ? 'MMM d' : 'MMM d, yyyy');
+  }
+  return formatDistanceToNow(createdAt, { addSuffix: true });
 }
 
 function ActionPill({
@@ -326,13 +350,11 @@ function ActionPill({
     <Pressable
       onPress={onPress}
       disabled={disabled}
-      className={`flex-row items-center rounded-full px-5 py-3 gap-2 ${
+      className={`flex-row items-center gap-2 rounded-full px-5 py-3 ${
         primary ? 'bg-snap-yellow' : 'bg-black/60'
       } ${disabled ? 'opacity-50' : ''}`}>
       <Ionicons name={icon} size={18} color={primary ? '#000' : '#fff'} />
-      <Text className={`font-bold text-sm ${primary ? 'text-black' : 'text-white'}`}>
-        {label}
-      </Text>
+      <Text className={`text-sm font-bold ${primary ? 'text-black' : 'text-white'}`}>{label}</Text>
     </Pressable>
   );
 }
@@ -371,12 +393,29 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   pageIndicator: {
-    position: 'absolute',
-    top: 60,
-    alignSelf: 'center',
     backgroundColor: 'rgba(0,0,0,0.45)',
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 3,
     borderRadius: 10,
+  },
+  topCenter: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  timestampPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+  },
+  timestampText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 12,
   },
 });

@@ -8,15 +8,16 @@ import Animated, {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
+import { useThemeColors } from '@lib/theme/useThemeColors';
 
 interface Props {
   active: boolean;
   color?: string;
 }
 
-
-export function BreathingLoader({ active, color = '#FFFC00' }: Props) {
-  const sweepX = useSharedValue(-1);    
+export function BreathingLoader({ active, color }: Props) {
+  const c = useThemeColors();
+  const sweepX = useSharedValue(-1);
   const opacity = useSharedValue(0);
 
   useEffect(() => {
@@ -39,11 +40,14 @@ export function BreathingLoader({ active, color = '#FFFC00' }: Props) {
     transform: [{ translateX: `${sweepX.value * 100}%` as unknown as number }],
   }));
 
+  const sweepColor = color ?? c.accent;
+  const railColor = c.scheme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)';
+
   return (
     <Animated.View style={[styles.track, trackStyle]} pointerEvents="none">
-      <View style={styles.railBg} />
+      <View style={[StyleSheet.absoluteFillObject, { backgroundColor: railColor }]} />
       <Animated.View
-        style={[styles.sweep, { backgroundColor: color }, sweepStyle]}
+        style={[styles.sweep, { backgroundColor: sweepColor }, sweepStyle]}
       />
     </Animated.View>
   );
@@ -54,10 +58,6 @@ const styles = StyleSheet.create({
     height: 2.5,
     overflow: 'hidden',
     backgroundColor: 'transparent',
-  },
-  railBg: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.05)',
   },
   sweep: {
     position: 'absolute',

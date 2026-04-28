@@ -52,7 +52,7 @@ export default function EditPasswordScreen() {
         value={current}
         onChangeText={setCurrent}
         placeholder="••••••••"
-        placeholderTextColor="#888"
+        placeholderTextColor={c.placeholder}
         secureTextEntry
         autoFocus
         style={s.input}
@@ -63,7 +63,7 @@ export default function EditPasswordScreen() {
         value={next}
         onChangeText={setNext}
         placeholder="••••••••"
-        placeholderTextColor="#888"
+        placeholderTextColor={c.placeholder}
         secureTextEntry
         style={s.input}
       />
@@ -91,7 +91,7 @@ export default function EditPasswordScreen() {
         value={confirm}
         onChangeText={setConfirm}
         placeholder="••••••••"
-        placeholderTextColor="#888"
+        placeholderTextColor={c.placeholder}
         secureTextEntry
         style={s.input}
       />

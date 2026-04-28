@@ -6,7 +6,9 @@ export default function SettingsLayout() {
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.bg } }}>
       <Stack.Screen name="index" />
+      <Stack.Screen name="appearance" />
       <Stack.Screen name="privacy" />
+      <Stack.Screen name="blocked" />
       <Stack.Screen name="notifications" />
       <Stack.Screen name="storage" />
       <Stack.Screen name="account" />

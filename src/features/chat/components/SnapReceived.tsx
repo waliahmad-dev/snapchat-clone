@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, Pressable, Image, StyleSheet, ActivityIndicator } from 'react-native';
 import { getSignedUrl } from '@lib/supabase/storage';
 import type { DbMessage } from '@/types/database';
+import { useThemeColors } from '@lib/theme/useThemeColors';
 
 interface Props {
   message: DbMessage;
@@ -13,6 +14,7 @@ interface Props {
 type ViewState = 'unopened' | 'loading' | 'open' | 'viewed';
 
 export function SnapReceived({ message, isOwn, onMarkViewed, onSave }: Props) {
+  const c = useThemeColors();
   const [viewState, setViewState] = useState<ViewState>(
     message.viewed_at ? 'viewed' : 'unopened'
   );
@@ -55,12 +57,17 @@ export function SnapReceived({ message, isOwn, onMarkViewed, onSave }: Props) {
         <View className="absolute bottom-24 right-4">
           <Pressable
             onPress={() => onSave(message.id)}
-            className="bg-black/60 rounded-full px-3 py-2">
-            <Text className="text-white text-xs font-bold">SAVE</Text>
+            className="rounded-full px-3 py-2"
+            style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
+            <Text className="text-xs font-bold" style={{ color: '#FFFFFF' }}>
+              SAVE
+            </Text>
           </Pressable>
         </View>
         <View className="absolute top-16 left-0 right-0 items-center">
-          <Text className="text-white/60 text-xs">Hold to view • Release to close</Text>
+          <Text className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>
+            Hold to view • Release to close
+          </Text>
         </View>
       </Pressable>
     );
@@ -68,30 +75,37 @@ export function SnapReceived({ message, isOwn, onMarkViewed, onSave }: Props) {
 
   if (viewState === 'loading') {
     return (
-      <View className="self-start ml-4 my-1 rounded-2xl bg-snap-yellow/20 px-4 py-3 flex-row items-center gap-2">
-        <ActivityIndicator color="#FFFC00" size="small" />
-        <Text className="text-snap-yellow text-sm">Loading snap…</Text>
+      <View
+        className="self-start ml-4 my-1 rounded-2xl px-4 py-3 flex-row items-center gap-2"
+        style={{
+          backgroundColor:
+            c.scheme === 'dark' ? 'rgba(255,252,0,0.2)' : 'rgba(255,204,0,0.18)',
+        }}>
+        <ActivityIndicator color={c.accent} size="small" />
+        <Text className="text-sm" style={{ color: c.accent }}>
+          Loading snap…
+        </Text>
       </View>
     );
   }
 
   const isSentByMe = isOwn;
+  const isViewed = viewState === 'viewed';
+  const pillBg = isViewed ? c.surfaceElevated : c.accent;
+  const pillText = isViewed ? c.textMuted : c.accentText;
 
   return (
     <Pressable
       onPress={handleOpen}
-      disabled={isSentByMe || viewState === 'viewed'}
-      className={`
-        self-${isSentByMe ? 'end mr-4' : 'start ml-4'} my-1
-        rounded-2xl px-4 py-3
-        ${viewState === 'viewed' ? 'bg-white/10' : 'bg-snap-yellow'}
-      `}>
-      <Text className={`text-sm font-bold ${viewState === 'viewed' ? 'text-white/40' : 'text-black'}`}>
+      disabled={isSentByMe || isViewed}
+      className={`my-1 rounded-2xl px-4 py-3 ${isSentByMe ? 'self-end mr-4' : 'self-start ml-4'}`}
+      style={{ backgroundColor: pillBg }}>
+      <Text className="text-sm font-bold" style={{ color: pillText }}>
         {isSentByMe
-          ? viewState === 'viewed'
+          ? isViewed
             ? '📷 Snap Opened'
             : '📷 Snap Sent'
-          : viewState === 'viewed'
+          : isViewed
           ? '📷 Snap Viewed'
           : '📷 Tap to Open'}
       </Text>

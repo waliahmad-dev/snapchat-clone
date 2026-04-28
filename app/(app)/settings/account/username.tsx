@@ -55,7 +55,7 @@ export default function EditUsernameScreen() {
         value={username}
         onChangeText={setUsername}
         placeholder="Username"
-        placeholderTextColor="#888"
+        placeholderTextColor={c.placeholder}
         autoCapitalize="none"
         autoCorrect={false}
         maxLength={20}

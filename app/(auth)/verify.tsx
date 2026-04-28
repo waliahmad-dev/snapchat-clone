@@ -11,9 +11,11 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@lib/supabase/client';
+import { useThemeColors } from '@lib/theme/useThemeColors';
 
 export default function VerifyScreen() {
   const router = useRouter();
+  const c = useThemeColors();
   const { email } = useLocalSearchParams<{ email: string }>();
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -41,48 +43,61 @@ export default function VerifyScreen() {
     if (!error) Alert.alert('Code sent', `A new code was sent to ${email}`);
   }
 
+  const submitDisabled = code.length < 6;
+
   return (
     <KeyboardAvoidingView
-      className="flex-1 bg-black"
+      className="flex-1"
+      style={{ backgroundColor: c.bg }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View className="flex-1 justify-center px-8">
-        <Text className="text-snap-yellow text-5xl text-center mb-3">📬</Text>
-        <Text className="text-white font-bold text-2xl text-center mb-2">
+        <Text className="text-5xl text-center mb-3" style={{ color: c.accent }}>
+          📬
+        </Text>
+        <Text
+          className="font-bold text-2xl text-center mb-2"
+          style={{ color: c.textPrimary }}>
           Check your email
         </Text>
-        <Text className="text-snap-gray text-center mb-8">
+        <Text className="text-center mb-8" style={{ color: c.textSecondary }}>
           We sent a 6-digit code to{' '}
-          <Text className="text-white font-medium">{email}</Text>
+          <Text className="font-medium" style={{ color: c.textPrimary }}>
+            {email}
+          </Text>
         </Text>
 
         <TextInput
-          className="bg-snap-surface text-white text-center text-3xl font-bold rounded-xl py-4 tracking-widest mb-6"
+          className="text-center text-3xl font-bold rounded-xl py-4 tracking-widest mb-6"
+          style={{ backgroundColor: c.inputBg, color: c.textPrimary }}
           value={code}
           onChangeText={(t) => setCode(t.replace(/\D/g, '').slice(0, 6))}
           keyboardType="number-pad"
           maxLength={6}
           placeholder="------"
-          placeholderTextColor="#444"
+          placeholderTextColor={c.placeholder}
           autoFocus
         />
 
         <Pressable
           onPress={handleVerify}
-          disabled={loading || code.length < 6}
-          className={`rounded-full py-4 items-center mb-4 ${
-            code.length < 6 ? 'bg-snap-yellow/40' : 'bg-snap-yellow'
-          }`}>
+          disabled={loading || submitDisabled}
+          className="rounded-full py-4 items-center mb-4"
+          style={{ backgroundColor: c.accent, opacity: submitDisabled ? 0.4 : 1 }}>
           {loading ? (
-            <ActivityIndicator color="#000" />
+            <ActivityIndicator color={c.accentText} />
           ) : (
-            <Text className="text-black font-bold text-lg">Verify</Text>
+            <Text className="font-bold text-lg" style={{ color: c.accentText }}>
+              Verify
+            </Text>
           )}
         </Pressable>
 
         <Pressable onPress={handleResend} className="items-center">
-          <Text className="text-snap-gray text-sm">
+          <Text className="text-sm" style={{ color: c.textSecondary }}>
             Didn't get it?{' '}
-            <Text className="text-snap-yellow font-semibold">Resend code</Text>
+            <Text className="font-semibold" style={{ color: c.accent }}>
+              Resend code
+            </Text>
           </Text>
         </Pressable>
       </View>

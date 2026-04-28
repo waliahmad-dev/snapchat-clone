@@ -13,6 +13,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
+import { useThemeColors, type ThemeColors } from '@lib/theme/useThemeColors';
 
 const { height: SCREEN_H } = Dimensions.get('window');
 
@@ -30,6 +31,8 @@ interface Props {
 }
 
 export function BottomSheet({ visible, title, actions, onClose }: Props) {
+  const c = useThemeColors();
+  const styles = makeStyles(c);
   const translateY = useSharedValue(SCREEN_H);
   const backdropOpacity = useSharedValue(0);
 
@@ -92,57 +95,59 @@ export function BottomSheet({ visible, title, actions, onClose }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  backdrop: {
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  sheet: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#1C1C1E',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    paddingBottom: 34,
-  },
-  titleRow: {
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-  },
-  title: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 13,
-    textAlign: 'center',
-  },
-  action: {
-    paddingVertical: 18,
-    paddingHorizontal: 20,
-    alignItems: 'center',
-  },
-  actionBorder: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(255,255,255,0.1)',
-  },
-  actionText: {
-    color: '#fff',
-    fontSize: 17,
-  },
-  destructiveText: {
-    color: '#FF3B30',
-  },
-  cancelAction: {
-    marginTop: 8,
-    backgroundColor: '#2C2C2E',
-    marginHorizontal: 16,
-    borderRadius: 12,
-  },
-  cancelText: {
-    color: '#fff',
-    fontSize: 17,
-    fontWeight: '600',
-  },
-});
+function makeStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    backdrop: {
+      backgroundColor: c.overlay,
+    },
+    sheet: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      backgroundColor: c.surfaceElevated,
+      borderTopLeftRadius: 16,
+      borderTopRightRadius: 16,
+      paddingBottom: 34,
+    },
+    titleRow: {
+      paddingVertical: 14,
+      paddingHorizontal: 20,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: c.border,
+      alignItems: 'center',
+    },
+    title: {
+      color: c.textMuted,
+      fontSize: 13,
+      textAlign: 'center',
+    },
+    action: {
+      paddingVertical: 18,
+      paddingHorizontal: 20,
+      alignItems: 'center',
+    },
+    actionBorder: {
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: c.divider,
+    },
+    actionText: {
+      color: c.textPrimary,
+      fontSize: 17,
+    },
+    destructiveText: {
+      color: c.danger,
+    },
+    cancelAction: {
+      marginTop: 8,
+      backgroundColor: c.surface,
+      marginHorizontal: 16,
+      borderRadius: 12,
+    },
+    cancelText: {
+      color: c.textPrimary,
+      fontSize: 17,
+      fontWeight: '600',
+    },
+  });
+}

@@ -6,12 +6,20 @@ import { Ionicons } from '@expo/vector-icons';
 import { signOut } from '@features/auth/utils/authHelpers';
 import { useAuthStore } from '@features/auth/store/authStore';
 import { useThemeColors, type ThemeColors } from '@lib/theme/useThemeColors';
+import { useThemeStore, type ThemeMode } from '@lib/theme/themeStore';
 import { formatBirthday } from '@features/profile/utils/horoscope';
+
+const THEME_MODE_LABEL: Record<ThemeMode, string> = {
+  system: 'System',
+  light: 'Light',
+  dark: 'Dark',
+};
 
 export default function SettingsScreen() {
   const router = useRouter();
   const profile = useAuthStore((s) => s.profile);
   const user = useAuthStore((s) => s.user);
+  const themeMode = useThemeStore((s) => s.mode);
   const c = useThemeColors();
   const styles = useStyles(c);
 
@@ -73,6 +81,25 @@ export default function SettingsScreen() {
             label="Email"
             value={user?.email ?? undefined}
             onPress={() => router.push('/(app)/settings/account/email')}
+            colors={c}
+          />
+        </Section>
+
+        <Section title="Preferences" colors={c}>
+          <Row
+            icon="contrast-outline"
+            label="Appearance"
+            value={THEME_MODE_LABEL[themeMode]}
+            onPress={() => router.push('/(app)/settings/appearance')}
+            colors={c}
+          />
+        </Section>
+
+        <Section title="Privacy" colors={c}>
+          <Row
+            icon="ban-outline"
+            label="Blocked Users"
+            onPress={() => router.push('/(app)/settings/blocked')}
             colors={c}
           />
         </Section>

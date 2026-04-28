@@ -1,14 +1,43 @@
 import React from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors, type ThemeColors } from '@lib/theme/useThemeColors';
+import { useThemeStore, type ThemeMode } from '@lib/theme/themeStore';
 
-export default function PrivacyScreen() {
+const OPTIONS: {
+  value: ThemeMode;
+  label: string;
+  description: string;
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+}[] = [
+  {
+    value: 'system',
+    label: 'System',
+    description: 'Match your device appearance',
+    icon: 'phone-portrait-outline',
+  },
+  {
+    value: 'light',
+    label: 'Light',
+    description: 'Always use light mode',
+    icon: 'sunny-outline',
+  },
+  {
+    value: 'dark',
+    label: 'Dark',
+    description: 'Always use dark mode',
+    icon: 'moon-outline',
+  },
+];
+
+export default function AppearanceScreen() {
   const router = useRouter();
   const c = useThemeColors();
   const styles = useStyles(c);
+  const mode = useThemeStore((s) => s.mode);
+  const setMode = useThemeStore((s) => s.setMode);
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
@@ -17,50 +46,36 @@ export default function PrivacyScreen() {
           <Pressable onPress={() => router.back()} hitSlop={10} style={styles.headerBtn}>
             <Ionicons name="chevron-back" size={26} color={c.textPrimary} />
           </Pressable>
-          <Text style={styles.headerTitle}>Privacy</Text>
+          <Text style={styles.headerTitle}>Appearance</Text>
           <View style={styles.headerBtn} />
         </View>
       </SafeAreaView>
 
       <ScrollView contentContainerStyle={{ paddingTop: 8, paddingBottom: 48 }}>
-        <Text style={styles.sectionLabel}>Contact</Text>
+        <Text style={styles.sectionLabel}>Theme</Text>
         <View style={styles.group}>
-          <View style={styles.row}>
-            <View style={[styles.iconCircle, { backgroundColor: c.iconCircleBg }]}>
-              <Ionicons name="chatbubble-ellipses-outline" size={18} color={c.textPrimary} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.label}>Who can contact me</Text>
-              <Text style={styles.description}>Friends only</Text>
-            </View>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.row}>
-            <View style={[styles.iconCircle, { backgroundColor: c.iconCircleBg }]}>
-              <Ionicons name="eye-outline" size={18} color={c.textPrimary} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.label}>Who can view my story</Text>
-              <Text style={styles.description}>Friends only</Text>
-            </View>
-          </View>
-        </View>
-
-        <Text style={styles.sectionLabel}>Blocking</Text>
-        <View style={styles.group}>
-          <Pressable
-            onPress={() => router.push('/(app)/settings/blocked')}
-            android_ripple={{ color: c.rowPress }}
-            style={styles.row}>
-            <View style={[styles.iconCircle, { backgroundColor: c.iconCircleBg }]}>
-              <Ionicons name="ban-outline" size={18} color={c.textPrimary} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.label}>Blocked Users</Text>
-              <Text style={styles.description}>Manage blocked accounts</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
-          </Pressable>
+          {OPTIONS.map((opt, idx) => (
+            <React.Fragment key={opt.value}>
+              <Pressable
+                onPress={() => setMode(opt.value)}
+                android_ripple={{ color: c.rowPress }}
+                style={styles.row}>
+                <View style={[styles.iconCircle, { backgroundColor: c.iconCircleBg }]}>
+                  <Ionicons name={opt.icon} size={18} color={c.textPrimary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.label}>{opt.label}</Text>
+                  <Text style={styles.description}>{opt.description}</Text>
+                </View>
+                {mode === opt.value ? (
+                  <Ionicons name="checkmark" size={22} color={c.accent} />
+                ) : (
+                  <View style={{ width: 22 }} />
+                )}
+              </Pressable>
+              {idx < OPTIONS.length - 1 && <View style={styles.divider} />}
+            </React.Fragment>
+          ))}
         </View>
       </ScrollView>
     </View>
@@ -133,6 +148,13 @@ function useStyles(c: ThemeColors) {
       height: StyleSheet.hairlineWidth,
       backgroundColor: c.border,
       marginLeft: 58,
+    },
+    footnote: {
+      color: c.textMuted,
+      fontSize: 12,
+      lineHeight: 18,
+      paddingHorizontal: 24,
+      paddingTop: 14,
     },
   });
 }

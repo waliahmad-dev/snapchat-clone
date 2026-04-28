@@ -11,6 +11,7 @@ export function useProfile(userId?: string) {
   const instanceId = useId();
   const [externalProfile, setExternalProfile] = useState<DbUser | null>(null);
   const [loading, setLoading] = useState(false);
+  const [notFound, setNotFound] = useState(false);
 
   const profile = isOwn ? currentUser : externalProfile;
 
@@ -47,13 +48,22 @@ export function useProfile(userId?: string) {
   async function load() {
     if (!targetId) return;
     setLoading(true);
+    setNotFound(false);
     try {
+      // .maybeSingle() — if RLS hides the row (e.g. either side has blocked
+      // the other) Supabase returns no row instead of throwing. We surface
+      // that as notFound so the profile screen can render an
+      // "unavailable" state instead of spinning forever.
       const { data } = await supabase
         .from('users')
         .select('*')
         .eq('id', targetId)
-        .single();
-      if (!data) return;
+        .maybeSingle();
+      if (!data) {
+        if (!isOwn) setExternalProfile(null);
+        setNotFound(true);
+        return;
+      }
       if (isOwn) setProfile(data);
       else setExternalProfile(data);
     } finally {
@@ -76,5 +86,5 @@ export function useProfile(userId?: string) {
     setProfile(data);
   }
 
-  return { profile, loading, updateProfile, refresh: load };
+  return { profile, loading, notFound, updateProfile, refresh: load };
 }

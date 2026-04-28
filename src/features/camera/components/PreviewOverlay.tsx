@@ -93,12 +93,9 @@ export function PreviewOverlay({
   async function exportComposite(): Promise<string> {
     if (completedPaths.length === 0 && facing !== 'front') return uri;
 
-    const liveSnap = compositeRef.current?.makeImageSnapshot();
-    if (liveSnap) {
-      const base64 = liveSnap.encodeToBase64(ImageFormat.JPEG, 92);
-      return writeBase64Jpeg(base64);
-    }
-
+    // Always render offscreen — the visible compositeRef canvas suppresses
+    // path rendering while the user is editing (paths live in the SkiaCanvas
+    // overlay during edit), so a live snapshot would miss those strokes.
     let sourceImage = skImage;
     if (!sourceImage) {
       const data = await FileSystem.readAsStringAsync(uri, {
@@ -248,17 +245,18 @@ export function PreviewOverlay({
             }
           />
         )}
-        {completedPaths.map((p, i) => (
-          <Path
-            key={i}
-            path={p.path}
-            color={p.color}
-            style="stroke"
-            strokeWidth={p.strokeWidth}
-            strokeCap="round"
-            strokeJoin="round"
-          />
-        ))}
+        {!isEditing &&
+          completedPaths.map((p, i) => (
+            <Path
+              key={i}
+              path={p.path}
+              color={p.color}
+              style="stroke"
+              strokeWidth={p.strokeWidth}
+              strokeCap="round"
+              strokeJoin="round"
+            />
+          ))}
       </Canvas>
 
       {drawingLayer}

@@ -7,6 +7,22 @@ export function useFriendRequest() {
 
   async function sendRequest(addresseeId: string): Promise<void> {
     if (!profile) return;
+
+    // Clear any stale rows in either direction before inserting. The
+    // friendships table has a per-direction UNIQUE constraint, so a
+    // leftover `declined` (or legacy `blocked`) row from earlier test
+    // sessions would permanently jam any future re-add. We only sweep
+    // non-active statuses; a live `pending` or `accepted` row is real
+    // state and the caller shouldn't be silently overwriting it.
+    await supabase
+      .from('friendships')
+      .delete()
+      .or(
+        `and(requester_id.eq.${profile.id},addressee_id.eq.${addresseeId}),` +
+          `and(requester_id.eq.${addresseeId},addressee_id.eq.${profile.id})`,
+      )
+      .not('status', 'in', '(accepted,pending)');
+
     const { error } = await supabase.from('friendships').insert({
       requester_id: profile.id,
       addressee_id: addresseeId,
@@ -35,10 +51,11 @@ export function useFriendRequest() {
   }
 
   async function declineRequest(friendshipId: string): Promise<void> {
-    await supabase
-      .from('friendships')
-      .update({ status: 'declined' })
-      .eq('id', friendshipId);
+    // Decline = cancel: hard-delete the row so either side can send a
+    // fresh request later. Marking the row `declined` instead would leave
+    // a tombstone that the per-direction UNIQUE constraint would treat as
+    // a permanent block on re-adding from the same direction.
+    await supabase.from('friendships').delete().eq('id', friendshipId);
   }
 
   async function removeFriend(friendshipId: string): Promise<void> {
@@ -60,18 +77,30 @@ export function useFriendRequest() {
   }
 
   /**
-   * Block is unfriend-plus: same cascade cleanup, but we also record the
-   * block in `public.blocks` so the blocked user disappears from search
-   * results on this device.
+   * Block is a hard reset: tear down every friendship row between the pair
+   * (in either direction), record the block, and purge all shared history
+   * (messages, snaps, my media, streak, conversation metadata). After this
+   * the users_select RLS hides each side from the other, so the blocked
+   * partner instantly drops out of the blocker's search, conversations,
+   * friends list, and stories — and vice-versa. Re-friending after an
+   * unblock starts from a blank slate.
+   *
+   * We delete by user pair rather than a single friendship id so a stray
+   * second-direction row (rare, but the unique constraint is per-direction)
+   * can't survive the block.
    */
   async function blockUser(
-    friendshipId: string | null,
+    _friendshipId: string | null,
     blockedId: string,
   ): Promise<void> {
     if (!profile) return;
-    if (friendshipId) {
-      await supabase.from('friendships').delete().eq('id', friendshipId);
-    }
+    await supabase
+      .from('friendships')
+      .delete()
+      .or(
+        `and(requester_id.eq.${profile.id},addressee_id.eq.${blockedId}),` +
+          `and(requester_id.eq.${blockedId},addressee_id.eq.${profile.id})`,
+      );
     await supabase
       .from('blocks')
       .upsert(
@@ -82,9 +111,14 @@ export function useFriendRequest() {
   }
 
   async function getFriendshipStatus(
-    otherUserId: string
-  ): Promise<{ status: string | null; friendshipId: string | null }> {
-    if (!profile) return { status: null, friendshipId: null };
+    otherUserId: string,
+  ): Promise<{
+    status: string | null;
+    friendshipId: string | null;
+    /** true when *I* am the requester (I sent the friend request to them). */
+    iSentRequest: boolean;
+  }> {
+    if (!profile) return { status: null, friendshipId: null, iSentRequest: false };
 
     // Two explicit direction queries beat a single .or(and(...),and(...))
     // filter: the nested form has been brittle under PostgREST URL encoding
@@ -98,7 +132,9 @@ export function useFriendRequest() {
       .eq('requester_id', profile.id)
       .eq('addressee_id', otherUserId)
       .maybeSingle();
-    if (outgoing) return { status: outgoing.status, friendshipId: outgoing.id };
+    if (outgoing) {
+      return { status: outgoing.status, friendshipId: outgoing.id, iSentRequest: true };
+    }
 
     const { data: incoming } = await supabase
       .from('friendships')
@@ -106,9 +142,11 @@ export function useFriendRequest() {
       .eq('requester_id', otherUserId)
       .eq('addressee_id', profile.id)
       .maybeSingle();
-    if (incoming) return { status: incoming.status, friendshipId: incoming.id };
+    if (incoming) {
+      return { status: incoming.status, friendshipId: incoming.id, iSentRequest: false };
+    }
 
-    return { status: null, friendshipId: null };
+    return { status: null, friendshipId: null, iSentRequest: false };
   }
 
   return {

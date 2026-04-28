@@ -3,9 +3,11 @@ import { TextInput, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useProfile } from '@features/profile/hooks/useProfile';
 import { EditFieldScreen, useStyledInput } from '@features/settings/components/EditFieldScreen';
+import { useThemeColors } from '@lib/theme/useThemeColors';
 
 export default function EditNameScreen() {
   const router = useRouter();
+  const c = useThemeColors();
   const { profile, updateProfile } = useProfile();
   const s = useStyledInput();
   const [name, setName] = useState(profile?.display_name ?? '');
@@ -39,7 +41,7 @@ export default function EditNameScreen() {
         value={name}
         onChangeText={setName}
         placeholder="Your name"
-        placeholderTextColor="#888"
+        placeholderTextColor={c.placeholder}
         maxLength={50}
         autoFocus
         style={s.input}

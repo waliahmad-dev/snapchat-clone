@@ -4,44 +4,40 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useConversations } from '@features/chat/hooks/useConversations';
 import { ConversationRow } from '@features/chat/components/ConversationRow';
-import { useAuthStore } from '@features/auth/store/authStore';
+import { useThemeColors } from '@lib/theme/useThemeColors';
 
 export default function ChatListScreen() {
   const router = useRouter();
+  const c = useThemeColors();
   const { conversations, loading } = useConversations();
-  const profile = useAuthStore((s) => s.profile);
 
   return (
-    <SafeAreaView className="flex-1 bg-black" edges={['top']}>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: c.bg }} edges={['top']}>
       <View className="flex-row items-center justify-between px-4 pt-2 pb-3">
         <Pressable onPress={() => router.back()} hitSlop={8}>
-          <Text className="text-white text-2xl">‹</Text>
+          <Text className="text-2xl" style={{ color: c.textPrimary }}>
+            ‹
+          </Text>
         </Pressable>
-        <Text className="text-white font-bold text-xl tracking-tight">Chat</Text>
-        <Pressable
-          onPress={() => router.push('/(app)/search')}
-          className="w-9 h-9 bg-white/10 rounded-full items-center justify-center"
-          hitSlop={8}>
-          <Text className="text-white text-base">🔍</Text>
-        </Pressable>
+        <Text className="font-bold text-xl tracking-tight" style={{ color: c.textPrimary }}>
+          Chat
+        </Text>
+        <View className="w-9 h-9" />
       </View>
 
       {loading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#FFFC00" />
+          <ActivityIndicator color={c.accent} />
         </View>
       ) : conversations.length === 0 ? (
         <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-white text-5xl mb-4">👻</Text>
-          <Text className="text-white text-xl font-bold mb-2">No chats yet</Text>
-          <Text className="text-snap-gray text-sm text-center">
-            Add friends and start snapping!
+          <Text className="text-5xl mb-4">👻</Text>
+          <Text className="text-xl font-bold mb-2" style={{ color: c.textPrimary }}>
+            No chats yet
           </Text>
-          <Pressable
-            onPress={() => router.push('/(app)/search')}
-            className="mt-5 bg-snap-yellow rounded-full px-8 py-3">
-            <Text className="text-black font-bold">Find Friends</Text>
-          </Pressable>
+          <Text className="text-sm text-center" style={{ color: c.textSecondary }}>
+            Add friends from your profile to start snapping.
+          </Text>
         </View>
       ) : (
         <FlatList

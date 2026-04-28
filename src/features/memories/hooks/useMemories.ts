@@ -5,7 +5,12 @@ import Memory from '@lib/watermelondb/models/Memory';
 import { Q } from '@nozbe/watermelondb';
 import { supabase } from '@lib/supabase/client';
 import { useAuthStore } from '@features/auth/store/authStore';
-import { getSignedUrl } from '@lib/supabase/storage';
+import {
+  resolveThumbUrl,
+  resolveFullUrl,
+  warmThumbs,
+  invalidateMemory,
+} from '@features/memories/lib/memoryImageCache';
 
 export function useMemories() {
   const profile = useAuthStore((s) => s.profile);
@@ -23,8 +28,10 @@ export function useMemories() {
       .query(Q.where('deleted_at', null))
       .observe()
       .subscribe((data) => {
-        setMemories(data.sort((a, b) => b.createdAt - a.createdAt));
+        const sorted = data.sort((a, b) => b.createdAt - a.createdAt);
+        setMemories(sorted);
         setLoading(false);
+        warmThumbs(sorted).catch(() => {});
       });
     return () => subscription.unsubscribe();
   }, []);
@@ -82,18 +89,12 @@ export function useMemories() {
 
 
   async function getDisplayUrl(memory: Memory): Promise<string> {
-    if (memory.uploadStatus !== 'done' && memory.localPath) {
-      return memory.localPath;
-    }
-    return getSignedUrl('memories', memory.thumbnailUrl || memory.mediaUrl);
+    return resolveThumbUrl(memory);
   }
 
 
   async function getFullUrl(memory: Memory): Promise<string> {
-    if (memory.uploadStatus !== 'done' && memory.localPath) {
-      return memory.localPath;
-    }
-    return getSignedUrl('memories', memory.mediaUrl);
+    return resolveFullUrl(memory);
   }
 
 
@@ -102,7 +103,7 @@ export function useMemories() {
       const info = await FileSystem.getInfoAsync(memory.localPath);
       if (info.exists) return memory.localPath;
     }
-    const signed = await getSignedUrl('memories', memory.mediaUrl);
+    const signed = await resolveFullUrl(memory);
     const destination = `${FileSystem.cacheDirectory}memory_${memory.id}.jpg`;
     const existing = await FileSystem.getInfoAsync(destination);
     if (existing.exists) return destination;
@@ -130,6 +131,8 @@ export function useMemories() {
         .eq('id', memory.remoteId);
       if (dbErr) throw dbErr;
     }
+
+    invalidateMemory(memory.id);
 
     await database.write(async () => {
       await memory.destroyPermanently();

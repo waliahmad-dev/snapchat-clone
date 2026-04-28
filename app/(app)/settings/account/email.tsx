@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { useAuthStore } from '@features/auth/store/authStore';
 import { updateEmail } from '@features/auth/utils/accountActions';
 import { EditFieldScreen, useStyledInput } from '@features/settings/components/EditFieldScreen';
+import { useThemeColors } from '@lib/theme/useThemeColors';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -11,6 +12,7 @@ export default function EditEmailScreen() {
   const router = useRouter();
   const currentEmail = useAuthStore((s) => s.user?.email ?? '');
   const s = useStyledInput();
+  const c = useThemeColors();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [saving, setSaving] = useState(false);
@@ -52,7 +54,7 @@ export default function EditEmailScreen() {
         value={email}
         onChangeText={setEmail}
         placeholder="you@example.com"
-        placeholderTextColor="#888"
+        placeholderTextColor={c.placeholder}
         keyboardType="email-address"
         autoCapitalize="none"
         autoCorrect={false}
@@ -66,7 +68,7 @@ export default function EditEmailScreen() {
         value={password}
         onChangeText={setPassword}
         placeholder="••••••••"
-        placeholderTextColor="#888"
+        placeholderTextColor={c.placeholder}
         secureTextEntry
         style={s.input}
       />

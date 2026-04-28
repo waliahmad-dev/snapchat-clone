@@ -1,6 +1,7 @@
 import React from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useThemeColors } from '@lib/theme/useThemeColors';
 
 interface Props {
   children: React.ReactNode;
@@ -8,8 +9,9 @@ interface Props {
 }
 
 export function KeyboardAvoidingContainer({ children, scrollable = false }: Props) {
+  const c = useThemeColors();
   return (
-    <SafeAreaView className="flex-1 bg-black">
+    <SafeAreaView className="flex-1" style={{ backgroundColor: c.bg }}>
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

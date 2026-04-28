@@ -6,12 +6,14 @@ import Animated, {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
+import { useThemeColors } from '@lib/theme/useThemeColors';
 
 interface Props {
   pendingCount: number;
 }
 
 export function MemoryUploadProgress({ pendingCount }: Props) {
+  const c = useThemeColors();
   const opacity = useSharedValue(1);
 
   useEffect(() => {
@@ -28,10 +30,13 @@ export function MemoryUploadProgress({ pendingCount }: Props) {
 
   return (
     <Animated.View
-      style={animStyle}
-      className="flex-row items-center gap-2 bg-snap-surface rounded-full px-3 py-1.5 self-end mr-4 mb-2">
-      <View className="w-2 h-2 rounded-full bg-snap-yellow" />
-      <Text className="text-white text-xs">
+      style={[animStyle, { backgroundColor: c.surfaceElevated }]}
+      className="flex-row items-center gap-2 rounded-full px-3 py-1.5 self-end mr-4 mb-2">
+      <View
+        className="w-2 h-2 rounded-full"
+        style={{ backgroundColor: c.accent }}
+      />
+      <Text className="text-xs" style={{ color: c.textPrimary }}>
         Uploading {pendingCount} {pendingCount === 1 ? 'memory' : 'memories'}…
       </Text>
     </Animated.View>

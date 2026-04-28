@@ -79,7 +79,7 @@ export default function DeleteAccountScreen() {
         value={password}
         onChangeText={setPassword}
         placeholder="••••••••"
-        placeholderTextColor="#888"
+        placeholderTextColor={c.placeholder}
         secureTextEntry
         style={s.input}
       />
@@ -89,7 +89,7 @@ export default function DeleteAccountScreen() {
         value={confirm}
         onChangeText={setConfirm}
         placeholder={CONFIRM_PHRASE}
-        placeholderTextColor="#888"
+        placeholderTextColor={c.placeholder}
         autoCapitalize="characters"
         autoCorrect={false}
         style={s.input}

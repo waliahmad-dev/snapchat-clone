@@ -21,6 +21,7 @@ import { supabase } from '@lib/supabase/client';
 import { useAuthStore } from '@features/auth/store/authStore';
 import { Avatar } from '@components/ui/Avatar';
 import { ensureConversation } from '@features/chat/utils/conversation';
+import { useThemeColors } from '@lib/theme/useThemeColors';
 import type { DbMessage, DbUser, DbConversation } from '@/types/database';
 
 const SCREEN_W = Dimensions.get('window').width;
@@ -36,6 +37,7 @@ interface ToastPayload {
 }
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
+  const c = useThemeColors();
   const profile = useAuthStore((s) => s.profile);
   const pathname = usePathname();
   const pathnameRef = useRef(pathname);
@@ -143,14 +145,20 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           <SafeAreaView edges={['top']}>
             <Pressable
               onPress={() => toast.onPress?.()}
-              style={styles.card}
-              android_ripple={{ color: 'rgba(0,0,0,0.05)' }}>
+              style={[styles.card, { backgroundColor: c.surfaceElevated }]}
+              android_ripple={{ color: c.rowPress }}>
               <Avatar uri={toast.avatarUrl} name={toast.title} size={40} />
               <View style={{ flex: 1, marginHorizontal: 10 }}>
-                <Text className="text-black font-bold text-sm" numberOfLines={1}>
+                <Text
+                  className="font-bold text-sm"
+                  style={{ color: c.textPrimary }}
+                  numberOfLines={1}>
                   {toast.title}
                 </Text>
-                <Text className="text-gray-600 text-xs" numberOfLines={1}>
+                <Text
+                  className="text-xs"
+                  style={{ color: c.textSecondary }}
+                  numberOfLines={1}>
                   {toast.body}
                 </Text>
               </View>
@@ -189,7 +197,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
     borderRadius: 16,
     paddingVertical: 10,
     paddingHorizontal: 12,

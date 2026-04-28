@@ -17,12 +17,14 @@ import { useFriendRequest } from '@features/friends/hooks/useFriendRequest';
 import { useAuthStore } from '@features/auth/store/authStore';
 import { Avatar } from '@components/ui/Avatar';
 import { openChatWith } from '@features/chat/utils/openChat';
+import { useThemeColors, type ThemeColors } from '@lib/theme/useThemeColors';
 import type { DbUser } from '@/types/database';
 
 type ButtonState = 'add' | 'pending_sent' | 'pending_received' | 'accepted';
 
 export default function SearchScreen() {
   const router = useRouter();
+  const c = useThemeColors();
   const { query, setQuery, results, loading: searchLoading } = useSearch();
   const { friends, pendingReceived, pendingSent, loading: friendsLoading, refresh } = useFriends();
   const { sendRequest, acceptRequest, declineRequest } = useFriendRequest();
@@ -89,23 +91,30 @@ export default function SearchScreen() {
     const busy = actionMap[user.id];
 
     if (busy) {
-      return <ActivityIndicator color="#FFFC00" size="small" style={{ marginRight: 4 }} />;
+      return <ActivityIndicator color={c.accent} size="small" style={{ marginRight: 4 }} />;
     }
 
     if (state === 'accepted') {
       return (
         <Pressable
           onPress={() => profile && openChatWith(profile.id, user)}
-          className="px-4 py-2 rounded-full bg-snap-yellow">
-          <Text className="text-black text-sm font-bold">Chat</Text>
+          className="px-4 py-2 rounded-full"
+          style={{ backgroundColor: c.accent }}>
+          <Text className="text-sm font-bold" style={{ color: c.accentText }}>
+            Chat
+          </Text>
         </Pressable>
       );
     }
 
     if (state === 'pending_sent') {
       return (
-        <View className="px-4 py-2 rounded-full bg-gray-100">
-          <Text className="text-gray-500 text-sm font-semibold">Added</Text>
+        <View
+          className="px-4 py-2 rounded-full"
+          style={{ backgroundColor: c.surfaceElevated }}>
+          <Text className="text-sm font-semibold" style={{ color: c.textMuted }}>
+            Added
+          </Text>
         </View>
       );
     }
@@ -116,13 +125,17 @@ export default function SearchScreen() {
         <View className="flex-row gap-2">
           <Pressable
             onPress={() => handleDecline(fw)}
-            className="w-9 h-9 rounded-full bg-gray-100 items-center justify-center">
-            <Ionicons name="close" size={16} color="#111" />
+            className="w-9 h-9 rounded-full items-center justify-center"
+            style={{ backgroundColor: c.surfaceElevated }}>
+            <Ionicons name="close" size={16} color={c.icon} />
           </Pressable>
           <Pressable
             onPress={() => handleAccept(fw)}
-            className="px-4 py-2 rounded-full bg-snap-yellow items-center justify-center">
-            <Text className="text-black text-sm font-bold">Accept</Text>
+            className="px-4 py-2 rounded-full items-center justify-center"
+            style={{ backgroundColor: c.accent }}>
+            <Text className="text-sm font-bold" style={{ color: c.accentText }}>
+              Accept
+            </Text>
           </Pressable>
         </View>
       );
@@ -131,20 +144,39 @@ export default function SearchScreen() {
     return (
       <Pressable
         onPress={() => handleAdd(user)}
-        className="px-4 py-2 rounded-full bg-snap-yellow">
-        <Text className="text-black text-sm font-bold">Add</Text>
+        className="px-4 py-2 rounded-full"
+        style={{ backgroundColor: c.accent }}>
+        <Text className="text-sm font-bold" style={{ color: c.accentText }}>
+          Add
+        </Text>
       </Pressable>
     );
   }
 
   function UserRow({ user }: { user: DbUser }) {
     return (
-      <View className="flex-row items-center px-4 py-3 bg-white">
-        <Avatar uri={user.avatar_url} name={user.display_name} size={44} />
-        <View className="flex-1 ml-3">
-          <Text className="text-black font-semibold">{user.display_name}</Text>
-          <Text className="text-gray-500 text-sm">@{user.username}</Text>
-        </View>
+      <View
+        className="flex-row items-center px-4 py-3"
+        style={{ backgroundColor: c.bg }}>
+        <Pressable
+          onPress={() =>
+            router.push({
+              pathname: '/(app)/profile/[userId]',
+              params: { userId: user.id },
+            })
+          }
+          className="flex-row items-center flex-1"
+          hitSlop={4}>
+          <Avatar uri={user.avatar_url} name={user.display_name} size={44} />
+          <View className="flex-1 ml-3">
+            <Text className="font-semibold" style={{ color: c.textPrimary }}>
+              {user.display_name}
+            </Text>
+            <Text className="text-sm" style={{ color: c.textSecondary }}>
+              @{user.username}
+            </Text>
+          </View>
+        </Pressable>
         {renderActionButton(user)}
       </View>
     );
@@ -152,8 +184,10 @@ export default function SearchScreen() {
 
   function SectionHeader({ label, count }: { label: string; count: number }) {
     return (
-      <View className="px-4 pt-5 pb-2 bg-white">
-        <Text className="text-gray-500 text-xs font-semibold uppercase tracking-widest">
+      <View className="px-4 pt-5 pb-2" style={{ backgroundColor: c.bg }}>
+        <Text
+          className="text-xs font-semibold uppercase tracking-widest"
+          style={{ color: c.textSecondary }}>
           {label} · {count}
         </Text>
       </View>
@@ -161,19 +195,22 @@ export default function SearchScreen() {
   }
 
   return (
-    <View className="flex-1 bg-white">
-      <SafeAreaView edges={['top']} className="bg-white">
+    <View className="flex-1" style={{ backgroundColor: c.bg }}>
+      <SafeAreaView edges={['top']} style={{ backgroundColor: c.bg }}>
         <View className="flex-row items-center px-4 pt-2 pb-3 gap-3">
           <Pressable onPress={() => router.back()} hitSlop={8}>
-            <Ionicons name="chevron-back" size={26} color="#111" />
+            <Ionicons name="chevron-back" size={26} color={c.icon} />
           </Pressable>
 
-          <View className="flex-1 flex-row items-center bg-gray-100 rounded-xl px-3 py-2.5">
-            <Ionicons name="search" size={18} color="#8E8E93" />
+          <View
+            className="flex-1 flex-row items-center rounded-xl px-3 py-2.5"
+            style={{ backgroundColor: c.inputBg }}>
+            <Ionicons name="search" size={18} color={c.iconMuted} />
             <TextInput
-              className="flex-1 text-black text-base ml-2"
+              className="flex-1 text-base ml-2"
+              style={{ color: c.textPrimary }}
               placeholder="Search friends"
-              placeholderTextColor="#8E8E93"
+              placeholderTextColor={c.placeholder}
               value={query}
               onChangeText={setQuery}
               autoFocus
@@ -183,7 +220,7 @@ export default function SearchScreen() {
             />
             {query.length > 0 && (
               <Pressable onPress={() => setQuery('')} hitSlop={6}>
-                <Ionicons name="close-circle" size={18} color="#8E8E93" />
+                <Ionicons name="close-circle" size={18} color={c.iconMuted} />
               </Pressable>
             )}
           </View>
@@ -193,12 +230,12 @@ export default function SearchScreen() {
       {isSearching ? (
         searchLoading ? (
           <View className="flex-1 items-center justify-center">
-            <ActivityIndicator color="#FFFC00" />
+            <ActivityIndicator color={c.accent} />
           </View>
         ) : filteredResults.length === 0 ? (
           <View className="flex-1 items-center justify-center px-8">
-            <Ionicons name="search-outline" size={48} color="#D1D1D6" />
-            <Text className="text-gray-500 text-center mt-3">
+            <Ionicons name="search-outline" size={48} color={c.iconMuted} />
+            <Text className="text-center mt-3" style={{ color: c.textSecondary }}>
               No users found for "{query}"
             </Text>
           </View>
@@ -207,7 +244,9 @@ export default function SearchScreen() {
             data={filteredResults}
             keyExtractor={(u) => u.id}
             renderItem={({ item }) => <UserRow user={item} />}
-            ItemSeparatorComponent={() => <View className="h-px bg-gray-100 ml-20" />}
+            ItemSeparatorComponent={() => (
+              <View className="h-px ml-20" style={{ backgroundColor: c.divider }} />
+            )}
             keyboardShouldPersistTaps="handled"
           />
         )
@@ -249,20 +288,26 @@ export default function SearchScreen() {
                 pendingReceived.length === 0 &&
                 pendingSent.length === 0 &&
                 friends.length === 0 && (
-                  <View className="items-center justify-center px-8 pt-16">
-                    <Ionicons name="people-outline" size={56} color="#D1D1D6" />
-                    <Text className="text-black font-bold text-lg mt-4 mb-1">
-                      Find your friends
-                    </Text>
-                    <Text className="text-gray-500 text-sm text-center">
-                      Search by username to add friends and start snapping.
-                    </Text>
-                  </View>
+                  <EmptyState colors={c} />
                 )}
             </View>
           }
         />
       )}
+    </View>
+  );
+}
+
+function EmptyState({ colors }: { colors: ThemeColors }) {
+  return (
+    <View className="items-center justify-center px-8 pt-16">
+      <Ionicons name="people-outline" size={56} color={colors.iconMuted} />
+      <Text className="font-bold text-lg mt-4 mb-1" style={{ color: colors.textPrimary }}>
+        Find your friends
+      </Text>
+      <Text className="text-sm text-center" style={{ color: colors.textSecondary }}>
+        Search by username to add friends and start snapping.
+      </Text>
     </View>
   );
 }

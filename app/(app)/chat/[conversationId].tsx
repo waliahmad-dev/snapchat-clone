@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useId, useState } from 'react';
 import { View, Text, FlatList, Pressable, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -14,10 +14,12 @@ import { Avatar } from '@components/ui/Avatar';
 import { useAuthStore } from '@features/auth/store/authStore';
 import { useCameraStore } from '@features/camera/store/cameraStore';
 import { supabase } from '@lib/supabase/client';
+import { useThemeColors } from '@lib/theme/useThemeColors';
 import type { DbUser } from '@/types/database';
 
 export default function ConversationScreen() {
   const router = useRouter();
+  const c = useThemeColors();
   const params = useLocalSearchParams<{
     conversationId: string;
     friendId: string;
@@ -25,6 +27,7 @@ export default function ConversationScreen() {
     autoSnapIds?: string;
   }>();
   const profile = useAuthStore((s) => s.profile);
+  const instanceId = useId();
   const {
     messages,
     loading,
@@ -56,12 +59,60 @@ export default function ConversationScreen() {
       .eq('id', params.friendId)
       .maybeSingle()
       .then(({ data }) => {
-        if (!cancelled && data) setFriend(data);
+        if (cancelled) return;
+        if (!data) {
+          // RLS hid the friend's user row — they blocked us, or were
+          // deleted. Either way the chat thread can't continue; bail to
+          // the chats list so this session stops being a back-channel.
+          router.replace('/(app)/chat');
+          return;
+        }
+        setFriend(data);
       });
     return () => {
       cancelled = true;
     };
-  }, [params.friendId]);
+  }, [params.friendId, router]);
+
+  // Watch the friendship row for our pair: when it disappears (the other
+  // side blocked or unfriended us), kick out of the thread. Realtime
+  // friendship payloads only carry primary keys on DELETE, so we can't
+  // filter perfectly server-side — instead we re-check our pair on any
+  // friendship change. Cheap, and immediate enough for users to feel.
+  useEffect(() => {
+    if (!profile || !params.friendId) return;
+    let cancelled = false;
+
+    async function ensureStillFriends() {
+      if (!profile) return;
+      const { data } = await supabase
+        .from('friendships')
+        .select('id, status')
+        .or(
+          `and(requester_id.eq.${profile.id},addressee_id.eq.${params.friendId}),` +
+            `and(requester_id.eq.${params.friendId},addressee_id.eq.${profile.id})`,
+        )
+        .maybeSingle();
+      if (cancelled) return;
+      if (!data || data.status !== 'accepted') {
+        router.replace('/(app)/chat');
+      }
+    }
+
+    const sub = supabase
+      .channel(`friendship-watch:${profile.id}:${params.friendId}:${instanceId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'friendships' },
+        () => ensureStillFriends(),
+      )
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(sub);
+    };
+  }, [profile?.id, params.friendId, router, instanceId]);
 
   useEffect(() => {
     markAllReceivedAsViewed();
@@ -84,13 +135,15 @@ export default function ConversationScreen() {
   if (!profile) return null;
 
   return (
-    <SafeAreaView className="flex-1 bg-black" edges={['top']}>
-      <View className="flex-row items-center px-3 py-3 border-b border-white/10 gap-2">
+    <SafeAreaView className="flex-1" style={{ backgroundColor: c.bg }} edges={['top']}>
+      <View
+        className="flex-row items-center px-3 py-3 border-b gap-2"
+        style={{ borderColor: c.border }}>
         <Pressable
           onPress={() => router.back()}
           className="w-9 h-9 items-center justify-center"
           hitSlop={8}>
-          <Ionicons name="chevron-back" size={26} color="#fff" />
+          <Ionicons name="chevron-back" size={26} color={c.icon} />
         </Pressable>
 
         <Pressable
@@ -108,13 +161,16 @@ export default function ConversationScreen() {
             size={34}
           />
           <Text
-            className="text-white font-bold text-base flex-shrink"
+            className="font-bold text-base flex-shrink"
+            style={{ color: c.textPrimary }}
             numberOfLines={1}>
             {params.friendName}
           </Text>
           {streak && streak.count > 0 && (
-            <View className="flex-row items-center bg-white/10 rounded-full px-2 py-0.5">
-              <Text className="text-snap-yellow font-bold text-sm">
+            <View
+              className="flex-row items-center rounded-full px-2 py-0.5"
+              style={{ backgroundColor: c.surfaceElevated }}>
+              <Text className="font-bold text-sm" style={{ color: c.accent }}>
                 {streak.count}
               </Text>
               <Text className="text-base ml-0.5">🔥</Text>
@@ -122,7 +178,6 @@ export default function ConversationScreen() {
           )}
         </Pressable>
 
-      
         <Pressable
           onPress={() => {
             useCameraStore.getState().setDirectRecipient({
@@ -133,13 +188,27 @@ export default function ConversationScreen() {
           }}
           className="w-9 h-9 items-center justify-center"
           hitSlop={8}>
-          <Ionicons name="camera-outline" size={24} color="#fff" />
+          <Ionicons name="camera-outline" size={24} color={c.icon} />
         </Pressable>
       </View>
 
       {loading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#FFFC00" />
+          <ActivityIndicator color={c.accent} />
+        </View>
+      ) : messages.length === 0 ? (
+        // Empty state lives OUTSIDE the inverted FlatList. Inside, Android
+        // double-flips text glyphs (the list applies scaleY:-1, and our
+        // counter-flip on the ListEmptyComponent doesn't reliably restore
+        // text on Android), which is what the user was hitting.
+        <View className="flex-1 items-center justify-center py-12 px-8">
+          <Text className="text-5xl mb-3">👋</Text>
+          <Text className="font-bold text-lg mb-1" style={{ color: c.textPrimary }}>
+            You&apos;re now friends with {params.friendName}!
+          </Text>
+          <Text className="text-sm text-center" style={{ color: c.textSecondary }}>
+            Say hi with a wave — send your first snap or message.
+          </Text>
         </View>
       ) : (
         <FlatList
@@ -164,19 +233,6 @@ export default function ConversationScreen() {
               />
             );
           }}
-          ListEmptyComponent={
-            <View
-              className="items-center justify-center py-12 px-8"
-              style={{ transform: [{ scaleY: -1 }] }}>
-              <Text className="text-5xl mb-3">👋</Text>
-              <Text className="text-white font-bold text-lg mb-1">
-                You're now friends with {params.friendName}!
-              </Text>
-              <Text className="text-white/60 text-sm text-center">
-                Say hi with a wave — send your first snap or message.
-              </Text>
-            </View>
-          }
         />
       )}
 

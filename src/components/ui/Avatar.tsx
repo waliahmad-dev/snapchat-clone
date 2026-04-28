@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Image, Text } from 'react-native';
+import { useThemeColors } from '@lib/theme/useThemeColors';
 
 interface Props {
   uri?: string | null;
@@ -8,6 +9,7 @@ interface Props {
 }
 
 export function Avatar({ uri, name, size = 48 }: Props) {
+  const c = useThemeColors();
   const fontSize = size * 0.4;
   const style = {
     width: size,
@@ -21,8 +23,8 @@ export function Avatar({ uri, name, size = 48 }: Props) {
 
   return (
     <View
-      style={[style, { backgroundColor: '#FFFC00', alignItems: 'center', justifyContent: 'center' }]}>
-      <Text style={{ fontSize, fontWeight: 'bold', color: '#000' }}>
+      style={[style, { backgroundColor: c.accent, alignItems: 'center', justifyContent: 'center' }]}>
+      <Text style={{ fontSize, fontWeight: 'bold', color: c.accentText }}>
         {name[0]?.toUpperCase() ?? '?'}
       </Text>
     </View>

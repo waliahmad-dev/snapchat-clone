@@ -25,6 +25,7 @@ import { useDrawing } from '@features/camera/hooks/useDrawing';
 import { useCameraStore } from '@features/camera/store/cameraStore';
 import { useAuthStore } from '@features/auth/store/authStore';
 import { Avatar } from '@components/ui/Avatar';
+import { useFriendRequestCount } from '@features/friends/hooks/useFriendRequestCount';
 
 const VERT_ACTIVATION = 28;
 const VERT_COMMIT = 90;
@@ -36,6 +37,7 @@ type ZoomPreset = 'half' | 'one' | 'five';
 
 export function CameraMainPanel() {
   const router = useRouter();
+  const requestCount = useFriendRequestCount();
   const { cameraRef, hasPermission, requestPermission, takePicture } = useCamera();
   const {
     facing,
@@ -234,7 +236,7 @@ export function CameraMainPanel() {
         <PreviewOverlay
           uri={capturedUri}
           facing={facing}
-          completedPaths={isEditing ? [] : completedPaths}
+          completedPaths={completedPaths}
           isEditing={isEditing}
           onClose={handleDiscard}
           onEnterEdit={handleEnterEdit}
@@ -277,6 +279,27 @@ export function CameraMainPanel() {
                   className="w-10 h-10 rounded-full bg-black/40 items-center justify-center"
                   hitSlop={8}>
                   <Ionicons name="person-add" size={18} color="#fff" />
+                  {requestCount > 0 && (
+                    <View
+                      style={{
+                        position: 'absolute',
+                        top: -2,
+                        right: -2,
+                        minWidth: 18,
+                        height: 18,
+                        borderRadius: 9,
+                        backgroundColor: '#FF3B30',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        paddingHorizontal: 5,
+                        borderWidth: 1.5,
+                        borderColor: '#000',
+                      }}>
+                      <Text style={{ color: '#FFFFFF', fontSize: 10, fontWeight: '700' }}>
+                        {requestCount > 99 ? '99+' : requestCount}
+                      </Text>
+                    </View>
+                  )}
                 </Pressable>
                 <FlipButton onPress={toggleFacing} />
               </View>

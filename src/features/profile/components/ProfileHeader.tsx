@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { Avatar } from '@components/ui/Avatar';
 import { SnapScore } from './SnapScore';
+import { useThemeColors } from '@lib/theme/useThemeColors';
 import type { DbUser } from '@/types/database';
 
 interface Props {
@@ -12,26 +13,39 @@ interface Props {
 }
 
 export function ProfileHeader({ profile, friendCount, onAvatarPress, editable = false }: Props) {
+  const c = useThemeColors();
   return (
     <View className="items-center py-6">
       <Pressable onPress={editable ? onAvatarPress : undefined} className="relative">
         <Avatar uri={profile.avatar_url} name={profile.display_name} size={96} />
         {editable && (
-          <View className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-snap-surface border-2 border-black items-center justify-center">
-            <Text className="text-white text-xs">✏️</Text>
+          <View
+            className="absolute bottom-0 right-0 w-7 h-7 rounded-full border-2 items-center justify-center"
+            style={{ backgroundColor: c.surfaceElevated, borderColor: c.bg }}>
+            <Text className="text-xs">✏️</Text>
           </View>
         )}
       </Pressable>
 
-      <Text className="text-white text-xl font-bold mt-3">{profile.display_name}</Text>
-      <Text className="text-snap-gray text-sm mt-0.5">@{profile.username}</Text>
+      <Text className="text-xl font-bold mt-3" style={{ color: c.textPrimary }}>
+        {profile.display_name}
+      </Text>
+      <Text className="text-sm mt-0.5" style={{ color: c.textSecondary }}>
+        @{profile.username}
+      </Text>
 
-      <View className="flex-row justify-around w-full px-8 mt-5 py-4 bg-snap-surface mx-4 rounded-xl">
+      <View
+        className="flex-row justify-around w-full px-8 mt-5 py-4 mx-4 rounded-xl"
+        style={{ backgroundColor: c.surfaceElevated }}>
         <SnapScore userId={profile.id} initialScore={profile.snap_score} />
-        <View className="w-px bg-white/10" />
+        <View style={{ width: 1, backgroundColor: c.border }} />
         <View className="items-center">
-          <Text className="text-white font-bold text-xl">{friendCount}</Text>
-          <Text className="text-snap-gray text-xs">Friends</Text>
+          <Text className="font-bold text-xl" style={{ color: c.textPrimary }}>
+            {friendCount}
+          </Text>
+          <Text className="text-xs" style={{ color: c.textSecondary }}>
+            Friends
+          </Text>
         </View>
       </View>
     </View>
