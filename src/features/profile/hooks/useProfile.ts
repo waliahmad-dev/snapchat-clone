@@ -37,7 +37,7 @@ export function useProfile(userId?: string) {
           const next = payload.new as DbUser;
           if (isOwn) setProfile(next);
           else setExternalProfile(next);
-        },
+        }
       )
       .subscribe();
     return () => {
@@ -50,15 +50,7 @@ export function useProfile(userId?: string) {
     setLoading(true);
     setNotFound(false);
     try {
-      // .maybeSingle() — if RLS hides the row (e.g. either side has blocked
-      // the other) Supabase returns no row instead of throwing. We surface
-      // that as notFound so the profile screen can render an
-      // "unavailable" state instead of spinning forever.
-      const { data } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', targetId)
-        .maybeSingle();
+      const { data } = await supabase.from('users').select('*').eq('id', targetId).maybeSingle();
       if (!data) {
         if (!isOwn) setExternalProfile(null);
         setNotFound(true);
@@ -72,7 +64,9 @@ export function useProfile(userId?: string) {
   }
 
   async function updateProfile(
-    fields: Partial<Pick<DbUser, 'display_name' | 'avatar_url' | 'date_of_birth' | 'phone' | 'username'>>,
+    fields: Partial<
+      Pick<DbUser, 'display_name' | 'avatar_url' | 'date_of_birth' | 'phone' | 'username'>
+    >
   ) {
     if (!currentUser) throw new Error('Not signed in');
     const { data, error } = await supabase

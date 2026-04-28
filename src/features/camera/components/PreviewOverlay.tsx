@@ -48,7 +48,7 @@ interface Props {
   onExitEdit: () => void;
   onUndo: () => void;
   canUndo: boolean;
- 
+
   drawingLayer?: React.ReactNode;
   topLayer?: React.ReactNode;
 }
@@ -93,9 +93,6 @@ export function PreviewOverlay({
   async function exportComposite(): Promise<string> {
     if (completedPaths.length === 0 && facing !== 'front') return uri;
 
-    // Always render offscreen — the visible compositeRef canvas suppresses
-    // path rendering while the user is editing (paths live in the SkiaCanvas
-    // overlay during edit), so a live snapshot would miss those strokes.
     let sourceImage = skImage;
     if (!sourceImage) {
       const data = await FileSystem.readAsStringAsync(uri, {
@@ -140,7 +137,7 @@ export function PreviewOverlay({
       sourceImage,
       Skia.XYWHRect(srcX, srcY, srcW, srcH),
       Skia.XYWHRect(0, 0, W, H),
-      imgPaint,
+      imgPaint
     );
     if (facing === 'front') canvas.restore();
 
@@ -176,10 +173,7 @@ export function PreviewOverlay({
         });
         reset();
       } catch (err) {
-        Alert.alert(
-          'Could not send',
-          err instanceof Error ? err.message : 'Please try again.',
-        );
+        Alert.alert('Could not send', err instanceof Error ? err.message : 'Please try again.');
       } finally {
         setSendingDirect(false);
       }
@@ -196,7 +190,7 @@ export function PreviewOverlay({
       if (!granted) {
         Alert.alert(
           'Permission required',
-          'Allow photo library access so we can save snaps to your gallery.',
+          'Allow photo library access so we can save snaps to your gallery.'
         );
         return;
       }
@@ -218,17 +212,13 @@ export function PreviewOverlay({
 
   return (
     <View style={StyleSheet.absoluteFill}>
-     
       <Image
         source={{ uri }}
         style={[StyleSheet.absoluteFill, { transform: imageTransform }]}
         resizeMode="cover"
       />
 
-      <Canvas
-        ref={compositeRef}
-        style={StyleSheet.absoluteFill}
-        pointerEvents="none">
+      <Canvas ref={compositeRef} style={StyleSheet.absoluteFill} pointerEvents="none">
         {skImage && (
           <SkiaImage
             image={skImage}
@@ -238,11 +228,7 @@ export function PreviewOverlay({
             height={COMPOSE_H}
             fit="cover"
             transform={facing === 'front' ? [{ scaleX: -1 }] : undefined}
-            origin={
-              facing === 'front'
-                ? { x: COMPOSE_W / 2, y: COMPOSE_H / 2 }
-                : undefined
-            }
+            origin={facing === 'front' ? { x: COMPOSE_W / 2, y: COMPOSE_H / 2 } : undefined}
           />
         )}
         {!isEditing &&
@@ -271,7 +257,7 @@ export function PreviewOverlay({
             onPress={onUndo}
             disabled={!canUndo}
             hitSlop={12}
-            className={`w-10 h-10 rounded-full bg-black/60 items-center justify-center ${canUndo ? 'opacity-100' : 'opacity-30'}`}
+            className={`h-10 w-10 items-center justify-center rounded-full bg-black/60 ${canUndo ? 'opacity-100' : 'opacity-30'}`}
             style={{ marginLeft: 8 }}>
             <Ionicons name="arrow-undo" size={20} color="#fff" />
           </Pressable>
@@ -281,15 +267,15 @@ export function PreviewOverlay({
           <Pressable
             onPress={onExitEdit}
             hitSlop={12}
-            className="bg-white rounded-full px-5 py-2"
+            className="rounded-full bg-white px-5 py-2"
             style={{ marginRight: 8 }}>
-            <Text className="text-black font-bold text-base">Done</Text>
+            <Text className="text-base font-bold text-black">Done</Text>
           </Pressable>
         ) : (
           <Pressable
             onPress={onEnterEdit}
             hitSlop={12}
-            className="w-10 h-10 rounded-full bg-black/50 items-center justify-center">
+            className="h-10 w-10 items-center justify-center rounded-full bg-black/50">
             <Ionicons name="pencil" size={20} color="#fff" />
           </Pressable>
         )}
@@ -299,7 +285,7 @@ export function PreviewOverlay({
         <Pressable
           onPress={handleSave}
           disabled={saving || justSaved}
-          className={`w-14 h-14 rounded-full items-center justify-center ${justSaved ? 'bg-snap-yellow' : 'bg-black/60'}`}>
+          className={`h-14 w-14 items-center justify-center rounded-full ${justSaved ? 'bg-snap-yellow' : 'bg-black/60'}`}>
           {saving ? (
             <ActivityIndicator color="#fff" size="small" />
           ) : justSaved ? (
@@ -312,14 +298,12 @@ export function PreviewOverlay({
         <Pressable
           onPress={handleSendTo}
           disabled={sendingDirect}
-          className={`flex-row items-center bg-snap-yellow rounded-full px-6 py-3 gap-1 ${sendingDirect ? 'opacity-60' : ''}`}>
+          className={`flex-row items-center gap-1 rounded-full bg-snap-yellow px-6 py-3 ${sendingDirect ? 'opacity-60' : ''}`}>
           {sendingDirect ? (
             <ActivityIndicator color="#000" size="small" />
           ) : (
             <>
-              <Text
-                className="text-black font-bold text-base"
-                numberOfLines={1}>
+              <Text className="text-base font-bold text-black" numberOfLines={1}>
                 {directRecipient
                   ? `Send to ${directRecipient.displayName.split(' ')[0]}`
                   : 'Send To'}

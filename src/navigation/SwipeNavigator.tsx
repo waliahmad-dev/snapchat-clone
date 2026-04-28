@@ -45,9 +45,6 @@ export function SwipeNavigator({ chatPanel, cameraPanel, storiesPanel }: Props) 
   const drawingMode = useCameraStore((s) => s.drawingMode);
   const captureState = useCameraStore((s) => s.captureState);
 
-  // Lock horizontal swipes whenever the user is reviewing or annotating a
-  // capture — the preview owns the screen at that point; sliding to chat or
-  // stories mid-review would discard unsent work and is always a misclick.
   const navLocked = drawingMode || captureState !== 'idle';
 
   const [activePanel, setActivePanel] = useState<SwipePanel>('camera');
@@ -56,10 +53,9 @@ export function SwipeNavigator({ chatPanel, cameraPanel, storiesPanel }: Props) 
     () => Math.round(-translateX.value / SCREEN_WIDTH),
     (currentIdx, previousIdx) => {
       if (currentIdx === previousIdx) return;
-      const panel: SwipePanel =
-        currentIdx === 0 ? 'chat' : currentIdx === 2 ? 'stories' : 'camera';
+      const panel: SwipePanel = currentIdx === 0 ? 'chat' : currentIdx === 2 ? 'stories' : 'camera';
       runOnJS(setActivePanel)(panel);
-    },
+    }
   );
 
   const startX = useSharedValue(-SCREEN_WIDTH * DEFAULT_INDEX);
@@ -95,9 +91,7 @@ export function SwipeNavigator({ chatPanel, cameraPanel, storiesPanel }: Props) 
     });
 
   const containerStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: clamp(translateX.value, MIN_TRANSLATE, MAX_TRANSLATE) },
-    ],
+    transform: [{ translateX: clamp(translateX.value, MIN_TRANSLATE, MAX_TRANSLATE) }],
   }));
 
   return (

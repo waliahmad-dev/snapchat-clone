@@ -3,12 +3,7 @@ import { supabase } from '@lib/supabase/client';
 import { useAuthStore } from '@features/auth/store/authStore';
 import type { DbConversation, DbUser } from '@/types/database';
 
-export type ConversationStatus =
-  | 'sent'         
-  | 'opened'       
-  | 'replied'       
-  | 'received'    
-  | 'empty';       
+export type ConversationStatus = 'sent' | 'opened' | 'replied' | 'received' | 'empty';
 
 export interface ConversationWithPartner extends DbConversation {
   partner: DbUser;
@@ -30,41 +25,29 @@ export function useConversations() {
 
     const convChannel = supabase
       .channel(`conversations:${profile.id}:${instanceId}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'conversations' },
-        () => loadConversations(),
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' }, () =>
+        loadConversations()
       )
       .subscribe();
 
     const msgChannel = supabase
       .channel(`messages-for-convs:${profile.id}:${instanceId}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'messages' },
-        () => loadConversations(),
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () =>
+        loadConversations()
       )
       .subscribe();
 
-    // Pick up avatar/display-name edits live so conversation rows always show
-    // the partner's current picture, not a stale one from the initial fetch.
     const userChannel = supabase
       .channel(`users-for-convs:${profile.id}:${instanceId}`)
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'users' },
-        () => loadConversations(),
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'users' }, () =>
+        loadConversations()
       )
       .subscribe();
 
-    // Friendship INSERT/DELETE decides whether a conversation row is visible
-    // (we filter by accepted friendship), so we reload when one flips.
     const friendChannel = supabase
       .channel(`friendships-for-convs:${profile.id}:${instanceId}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'friendships' },
-        () => loadConversations(),
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships' }, () =>
+        loadConversations()
       )
       .subscribe();
 
@@ -93,37 +76,27 @@ export function useConversations() {
 
       const convIds = convs.map((c: DbConversation) => c.id);
       const partnerIds = convs.map((c: DbConversation) =>
-        c.participant_1 === profile.id ? c.participant_2 : c.participant_1,
+        c.participant_1 === profile.id ? c.participant_2 : c.participant_1
       );
 
-      // Also fetch the accepted-friendship list so we can hide conversation
-      // rows for unfriended/blocked users. The conversations table has no
-      // deleted_at column and its row is reused on re-friend (unique pair
-      // constraint), so friendship status is our source of truth for "is
-      // this contact still in my chat list".
-      const [{ data: partners }, { data: messages }, { data: friendRows }] =
-        await Promise.all([
-          supabase.from('users').select('*').in('id', partnerIds),
-          supabase
-            .from('messages')
-            .select('id, conversation_id, sender_id, viewed_at, created_at, type, deleted_at')
-            .in('conversation_id', convIds)
-            .is('deleted_at', null)
-            .order('created_at', { ascending: false }),
-          supabase
-            .from('friendships')
-            .select('requester_id, addressee_id, status')
-            .eq('status', 'accepted')
-            .or(
-              `requester_id.eq.${profile.id},addressee_id.eq.${profile.id}`,
-            ),
-        ]);
+      const [{ data: partners }, { data: messages }, { data: friendRows }] = await Promise.all([
+        supabase.from('users').select('*').in('id', partnerIds),
+        supabase
+          .from('messages')
+          .select('id, conversation_id, sender_id, viewed_at, created_at, type, deleted_at')
+          .in('conversation_id', convIds)
+          .is('deleted_at', null)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('friendships')
+          .select('requester_id, addressee_id, status')
+          .eq('status', 'accepted')
+          .or(`requester_id.eq.${profile.id},addressee_id.eq.${profile.id}`),
+      ]);
 
       const acceptedPartnerIds = new Set<string>();
       for (const f of friendRows ?? []) {
-        acceptedPartnerIds.add(
-          f.requester_id === profile.id ? f.addressee_id : f.requester_id,
-        );
+        acceptedPartnerIds.add(f.requester_id === profile.id ? f.addressee_id : f.requester_id);
       }
 
       const partnerMap = new Map((partners ?? []).map((u: DbUser) => [u.id, u]));
@@ -131,17 +104,16 @@ export function useConversations() {
       type MsgSummary = {
         last?: { sender_id: string; viewed_at: string | null; created_at: string };
         hasMySent: boolean;
-        unreadCount: number;         
-        unviewedSnapIds: string[];   
+        unreadCount: number;
+        unviewedSnapIds: string[];
       };
       const summary = new Map<string, MsgSummary>();
       for (const msg of messages ?? []) {
-        const entry =
-          summary.get(msg.conversation_id) ?? {
-            hasMySent: false,
-            unreadCount: 0,
-            unviewedSnapIds: [],
-          };
+        const entry = summary.get(msg.conversation_id) ?? {
+          hasMySent: false,
+          unreadCount: 0,
+          unviewedSnapIds: [],
+        };
         if (!entry.last) {
           entry.last = {
             sender_id: msg.sender_id,
@@ -162,12 +134,9 @@ export function useConversations() {
 
       const enriched: ConversationWithPartner[] = convs
         .map((c: DbConversation) => {
-          const partnerId =
-            c.participant_1 === profile.id ? c.participant_2 : c.participant_1;
+          const partnerId = c.participant_1 === profile.id ? c.participant_2 : c.participant_1;
           const partner = partnerMap.get(partnerId);
           if (!partner) return null;
-          // Skip conversations whose partner is no longer an accepted
-          // friend — that row is a stale remnant from before unfriend/block.
           if (!acceptedPartnerIds.has(partnerId)) return null;
 
           const s = summary.get(c.id);
@@ -206,10 +175,7 @@ export function useConversations() {
     }
   }
 
-  const totalUnread = conversations.reduce(
-    (acc, c) => acc + (c.unread_count ?? 0),
-    0,
-  );
+  const totalUnread = conversations.reduce((acc, c) => acc + (c.unread_count ?? 0), 0);
 
   return { conversations, loading, totalUnread, refresh: loadConversations };
 }

@@ -9,13 +9,12 @@ import {
   IMAGE_QUALITY_THUMBNAIL,
 } from '@constants/config';
 
-const TARGET_ASPECT = 9 / 16; 
+const TARGET_ASPECT = 9 / 16;
 
 async function getDimensions(uri: string): Promise<{ width: number; height: number }> {
   const info = await ImageManipulator.manipulateAsync(uri, [], {});
   return { width: info.width, height: info.height };
 }
-
 
 export async function cropTo916(uri: string): Promise<string> {
   const { width, height } = await getDimensions(uri);
@@ -39,7 +38,7 @@ export async function cropTo916(uri: string): Promise<string> {
   const result = await ImageManipulator.manipulateAsync(
     uri,
     [{ crop: { originX, originY, width: cropWidth, height: cropHeight } }],
-    { format: ImageManipulator.SaveFormat.JPEG, compress: 1 },
+    { format: ImageManipulator.SaveFormat.JPEG, compress: 1 }
   );
   return result.uri;
 }
@@ -48,23 +47,19 @@ export async function processImage(uri: string): Promise<ProcessedImage> {
   const cropped = await cropTo916(uri);
 
   const [full, preview, thumbnail] = await Promise.all([
-    ImageManipulator.manipulateAsync(
-      cropped,
-      [{ resize: { width: MAX_IMAGE_SIZE_PX } }],
-      { compress: IMAGE_QUALITY_FULL, format: ImageManipulator.SaveFormat.JPEG },
-    ),
-    ImageManipulator.manipulateAsync(
-      cropped,
-      [{ resize: { width: PREVIEW_IMAGE_SIZE_PX } }],
-      { compress: IMAGE_QUALITY_PREVIEW, format: ImageManipulator.SaveFormat.JPEG },
-    ),
-    // Thumbnail preserves 9:16 (source is already cropTo916'd) — resizing
-    // with only width avoids squashing portrait snaps into a square.
-    ImageManipulator.manipulateAsync(
-      cropped,
-      [{ resize: { width: THUMBNAIL_SIZE_PX } }],
-      { compress: IMAGE_QUALITY_THUMBNAIL, format: ImageManipulator.SaveFormat.JPEG },
-    ),
+    ImageManipulator.manipulateAsync(cropped, [{ resize: { width: MAX_IMAGE_SIZE_PX } }], {
+      compress: IMAGE_QUALITY_FULL,
+      format: ImageManipulator.SaveFormat.JPEG,
+    }),
+    ImageManipulator.manipulateAsync(cropped, [{ resize: { width: PREVIEW_IMAGE_SIZE_PX } }], {
+      compress: IMAGE_QUALITY_PREVIEW,
+      format: ImageManipulator.SaveFormat.JPEG,
+    }),
+
+    ImageManipulator.manipulateAsync(cropped, [{ resize: { width: THUMBNAIL_SIZE_PX } }], {
+      compress: IMAGE_QUALITY_THUMBNAIL,
+      format: ImageManipulator.SaveFormat.JPEG,
+    }),
   ]);
 
   return {
@@ -79,7 +74,7 @@ export async function compressImage(uri: string, quality = IMAGE_QUALITY_FULL): 
   const result = await ImageManipulator.manipulateAsync(
     cropped,
     [{ resize: { width: MAX_IMAGE_SIZE_PX } }],
-    { compress: quality, format: ImageManipulator.SaveFormat.JPEG },
+    { compress: quality, format: ImageManipulator.SaveFormat.JPEG }
   );
   return result.uri;
 }

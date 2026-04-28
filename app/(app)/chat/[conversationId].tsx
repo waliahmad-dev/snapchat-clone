@@ -44,7 +44,7 @@ export default function ConversationScreen() {
   const [friend, setFriend] = useState<DbUser | null>(null);
 
   const [snapQueue] = useState<string[]>(() =>
-    params.autoSnapIds ? params.autoSnapIds.split(',').filter(Boolean) : [],
+    params.autoSnapIds ? params.autoSnapIds.split(',').filter(Boolean) : []
   );
   const [playerOpen, setPlayerOpen] = useState(snapQueue.length > 0);
 
@@ -61,9 +61,6 @@ export default function ConversationScreen() {
       .then(({ data }) => {
         if (cancelled) return;
         if (!data) {
-          // RLS hid the friend's user row — they blocked us, or were
-          // deleted. Either way the chat thread can't continue; bail to
-          // the chats list so this session stops being a back-channel.
           router.replace('/(app)/chat');
           return;
         }
@@ -74,11 +71,6 @@ export default function ConversationScreen() {
     };
   }, [params.friendId, router]);
 
-  // Watch the friendship row for our pair: when it disappears (the other
-  // side blocked or unfriended us), kick out of the thread. Realtime
-  // friendship payloads only carry primary keys on DELETE, so we can't
-  // filter perfectly server-side — instead we re-check our pair on any
-  // friendship change. Cheap, and immediate enough for users to feel.
   useEffect(() => {
     if (!profile || !params.friendId) return;
     let cancelled = false;
@@ -90,7 +82,7 @@ export default function ConversationScreen() {
         .select('id, status')
         .or(
           `and(requester_id.eq.${profile.id},addressee_id.eq.${params.friendId}),` +
-            `and(requester_id.eq.${params.friendId},addressee_id.eq.${profile.id})`,
+            `and(requester_id.eq.${params.friendId},addressee_id.eq.${profile.id})`
         )
         .maybeSingle();
       if (cancelled) return;
@@ -101,10 +93,8 @@ export default function ConversationScreen() {
 
     const sub = supabase
       .channel(`friendship-watch:${profile.id}:${params.friendId}:${instanceId}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'friendships' },
-        () => ensureStillFriends(),
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships' }, () =>
+        ensureStillFriends()
       )
       .subscribe();
 
@@ -137,11 +127,11 @@ export default function ConversationScreen() {
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor: c.bg }} edges={['top']}>
       <View
-        className="flex-row items-center px-3 py-3 border-b gap-2"
+        className="flex-row items-center gap-2 border-b px-3 py-3"
         style={{ borderColor: c.border }}>
         <Pressable
           onPress={() => router.back()}
-          className="w-9 h-9 items-center justify-center"
+          className="h-9 w-9 items-center justify-center"
           hitSlop={8}>
           <Ionicons name="chevron-back" size={26} color={c.icon} />
         </Pressable>
@@ -155,13 +145,9 @@ export default function ConversationScreen() {
           }
           className="flex-1 flex-row items-center gap-2"
           hitSlop={6}>
-          <Avatar
-            uri={friend?.avatar_url ?? null}
-            name={params.friendName ?? '?'}
-            size={34}
-          />
+          <Avatar uri={friend?.avatar_url ?? null} name={params.friendName ?? '?'} size={34} />
           <Text
-            className="font-bold text-base flex-shrink"
+            className="flex-shrink text-base font-bold"
             style={{ color: c.textPrimary }}
             numberOfLines={1}>
             {params.friendName}
@@ -170,10 +156,10 @@ export default function ConversationScreen() {
             <View
               className="flex-row items-center rounded-full px-2 py-0.5"
               style={{ backgroundColor: c.surfaceElevated }}>
-              <Text className="font-bold text-sm" style={{ color: c.accent }}>
+              <Text className="text-sm font-bold" style={{ color: c.accent }}>
                 {streak.count}
               </Text>
-              <Text className="text-base ml-0.5">🔥</Text>
+              <Text className="ml-0.5 text-base">🔥</Text>
             </View>
           )}
         </Pressable>
@@ -186,7 +172,7 @@ export default function ConversationScreen() {
             });
             router.push('/(app)/camera');
           }}
-          className="w-9 h-9 items-center justify-center"
+          className="h-9 w-9 items-center justify-center"
           hitSlop={8}>
           <Ionicons name="camera-outline" size={24} color={c.icon} />
         </Pressable>
@@ -197,16 +183,12 @@ export default function ConversationScreen() {
           <ActivityIndicator color={c.accent} />
         </View>
       ) : messages.length === 0 ? (
-        // Empty state lives OUTSIDE the inverted FlatList. Inside, Android
-        // double-flips text glyphs (the list applies scaleY:-1, and our
-        // counter-flip on the ListEmptyComponent doesn't reliably restore
-        // text on Android), which is what the user was hitting.
-        <View className="flex-1 items-center justify-center py-12 px-8">
-          <Text className="text-5xl mb-3">👋</Text>
-          <Text className="font-bold text-lg mb-1" style={{ color: c.textPrimary }}>
+        <View className="flex-1 items-center justify-center px-8 py-12">
+          <Text className="mb-3 text-5xl">👋</Text>
+          <Text className="mb-1 text-lg font-bold" style={{ color: c.textPrimary }}>
             You&apos;re now friends with {params.friendName}!
           </Text>
-          <Text className="text-sm text-center" style={{ color: c.textSecondary }}>
+          <Text className="text-center text-sm" style={{ color: c.textSecondary }}>
             Say hi with a wave — send your first snap or message.
           </Text>
         </View>
@@ -219,8 +201,8 @@ export default function ConversationScreen() {
           renderItem={({ item }) => {
             const isOwn = item.sender_id === profile.id;
             const authorName = isOwn
-              ? profile.display_name ?? 'You'
-              : params.friendName ?? 'They';
+              ? (profile.display_name ?? 'You')
+              : (params.friendName ?? 'They');
             return (
               <MessageBubble
                 message={item}

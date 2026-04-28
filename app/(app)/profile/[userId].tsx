@@ -48,15 +48,13 @@ export default function UserProfileScreen() {
     if (!currentUser || !userId) return;
     let cancelled = false;
     setStatusLoaded(false);
-    getFriendshipStatus(userId).then(
-      ({ status, friendshipId: fid, iSentRequest: mine }) => {
-        if (cancelled) return;
-        setFriendshipStatus(status);
-        setFriendshipId(fid);
-        setISentRequest(mine);
-        setStatusLoaded(true);
-      },
-    );
+    getFriendshipStatus(userId).then(({ status, friendshipId: fid, iSentRequest: mine }) => {
+      if (cancelled) return;
+      setFriendshipStatus(status);
+      setFriendshipId(fid);
+      setISentRequest(mine);
+      setStatusLoaded(true);
+    });
     return () => {
       cancelled = true;
     };
@@ -131,7 +129,7 @@ export default function UserProfileScreen() {
             }
           },
         },
-      ],
+      ]
     );
   }
 
@@ -151,10 +149,7 @@ export default function UserProfileScreen() {
             try {
               await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
               await blockUser(friendshipId, userId);
-              // Route to the chats tab rather than router.back() — the
-              // previous screen may have been the chat thread with this
-              // user, and staying mounted there keeps a session-long
-              // window open for them to keep typing.
+
               router.replace('/(app)/chat');
             } catch (err: any) {
               Alert.alert('Could not block', err.message ?? 'Please try again.');
@@ -163,7 +158,7 @@ export default function UserProfileScreen() {
             }
           },
         },
-      ],
+      ]
     );
   }
 
@@ -184,7 +179,8 @@ export default function UserProfileScreen() {
           </View>
           <Text style={styles.emptyTitle}>User not available</Text>
           <Text style={styles.emptyBody}>
-            This account can&apos;t be viewed. They may have blocked you, or you may have blocked them.
+            This account can&apos;t be viewed. They may have blocked you, or you may have blocked
+            them.
           </Text>
         </View>
       </View>
@@ -203,10 +199,8 @@ export default function UserProfileScreen() {
   const zodiac = zodiacFromIso(profile.date_of_birth);
   const isPending = sent || friendshipStatus === 'pending';
   const isAccepted = friendshipStatus === 'accepted';
-  // Pending request *they* sent to me — show Accept / Decline instead of
-  // the gray "Pending" pill, since I'm the one who has to act on it.
-  const isIncomingRequest =
-    friendshipStatus === 'pending' && !iSentRequest && !sent;
+
+  const isIncomingRequest = friendshipStatus === 'pending' && !iSentRequest && !sent;
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
@@ -269,9 +263,7 @@ export default function UserProfileScreen() {
               {actionLoading ? (
                 <ActivityIndicator color={c.textPrimary} size="small" />
               ) : (
-                <Text style={[styles.primaryBtnText, { color: c.textPrimary }]}>
-                  ✓ Friends
-                </Text>
+                <Text style={[styles.primaryBtnText, { color: c.textPrimary }]}>✓ Friends</Text>
               )}
             </Pressable>
           ) : isIncomingRequest ? (
@@ -284,16 +276,12 @@ export default function UserProfileScreen() {
                 <Pressable
                   onPress={handleDecline}
                   style={[styles.requestBtn, { backgroundColor: c.surfaceElevated }]}>
-                  <Text style={[styles.primaryBtnText, { color: c.textPrimary }]}>
-                    Decline
-                  </Text>
+                  <Text style={[styles.primaryBtnText, { color: c.textPrimary }]}>Decline</Text>
                 </Pressable>
                 <Pressable
                   onPress={handleAccept}
                   style={[styles.requestBtn, { backgroundColor: c.accent }]}>
-                  <Text style={[styles.primaryBtnText, { color: c.accentText }]}>
-                    Accept
-                  </Text>
+                  <Text style={[styles.primaryBtnText, { color: c.accentText }]}>Accept</Text>
                 </Pressable>
               </View>
             )

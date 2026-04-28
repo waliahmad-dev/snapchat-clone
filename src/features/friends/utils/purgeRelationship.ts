@@ -20,27 +20,19 @@ import { resetStreak } from '@lib/redis/streak';
  * This is best-effort: individual step failures are logged (swallowed) so the
  * user-facing unfriend/block still succeeds even if one side-effect fails.
  */
-export async function purgeRelationshipData(
-  meId: string,
-  otherId: string,
-): Promise<void> {
+export async function purgeRelationshipData(meId: string, otherId: string): Promise<void> {
   const nowIso = new Date().toISOString();
 
-  // 1. Find conversation(s) between the two users.
   const { data: convs } = await supabase
     .from('conversations')
     .select('id')
     .or(
       `and(participant_1.eq.${meId},participant_2.eq.${otherId}),` +
-        `and(participant_1.eq.${otherId},participant_2.eq.${meId})`,
+        `and(participant_1.eq.${otherId},participant_2.eq.${meId})`
     );
   const convIds = (convs ?? []).map((c: { id: string }) => c.id);
 
   if (convIds.length > 0) {
-    // 2. Collect my own uploads so we can remove them from storage. We
-    //    cannot remove the other user's uploads (RLS blocks that) — those
-    //    rows will become unreachable via the DB once we soft-delete the
-    //    messages that reference them.
     const { data: myMsgs } = await supabase
       .from('messages')
       .select('media_url')
@@ -53,42 +45,37 @@ export async function purgeRelationshipData(
       .filter((p): p is string => !!p);
 
     if (myMediaPaths.length > 0) {
-      const thumbPaths = myMediaPaths.map((p) =>
-        p.replace(/_full\.(jpe?g|png)$/i, '_thumb.$1'),
-      );
-      // Swallow errors — orphan storage is preferable to aborting the purge.
-      await supabase.storage.from('snaps').remove(myMediaPaths).catch(() => null);
-      await supabase.storage.from('snaps').remove(thumbPaths).catch(() => null);
+      const thumbPaths = myMediaPaths.map((p) => p.replace(/_full\.(jpe?g|png)$/i, '_thumb.$1'));
+      await supabase.storage
+        .from('snaps')
+        .remove(myMediaPaths)
+        .catch(() => null);
+      await supabase.storage
+        .from('snaps')
+        .remove(thumbPaths)
+        .catch(() => null);
     }
 
-    // 3. Soft-delete every message in the conversation. RLS grants UPDATE
-    //    to both participants, so we can mark the whole thread even though
-    //    half of it was written by the other side.
     await supabase
       .from('messages')
       .update({ deleted_at: nowIso })
       .in('conversation_id', convIds)
       .is('deleted_at', null);
 
-    // 4. Scrub conversation metadata so the zombie row is indistinguishable
-    //    from a fresh one if this pair ever re-friends.
     await supabase
       .from('conversations')
       .update({ last_message_id: null, streak_count: 0 })
       .in('id', convIds);
   }
 
-  // 5. Soft-delete any snap rows between the two (some predate the
-  //    messages-as-snaps pattern, so catch both).
   await supabase
     .from('snaps')
     .update({ deleted_at: nowIso })
     .or(
       `and(sender_id.eq.${meId},recipient_id.eq.${otherId}),` +
-        `and(sender_id.eq.${otherId},recipient_id.eq.${meId})`,
+        `and(sender_id.eq.${otherId},recipient_id.eq.${meId})`
     )
     .is('deleted_at', null);
 
-  // 6. Drop the Redis streak key so count restarts at 0 on re-friend.
   await resetStreak(meId, otherId).catch(() => null);
 }

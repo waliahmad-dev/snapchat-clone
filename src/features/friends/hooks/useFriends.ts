@@ -11,7 +11,7 @@ export interface FriendWithStatus extends DbUser {
 
 export function useFriends() {
   const profile = useAuthStore((s) => s.profile);
-  const instanceId = useId();                
+  const instanceId = useId();
   const [friends, setFriends] = useState<FriendWithStatus[]>([]);
   const [pendingReceived, setPendingReceived] = useState<FriendWithStatus[]>([]);
   const [pendingSent, setPendingSent] = useState<FriendWithStatus[]>([]);
@@ -24,10 +24,8 @@ export function useFriends() {
     const channelName = `friendships:${profile.id}:${instanceId}`;
     const sub = supabase
       .channel(channelName)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'friendships' },
-        () => loadFriends(),
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships' }, () =>
+        loadFriends()
       )
       .subscribe();
 
@@ -49,7 +47,7 @@ export function useFriends() {
       if (!friendships) return;
 
       const otherIds = friendships.map((f: DbFriendship) =>
-        f.requester_id === profile.id ? f.addressee_id : f.requester_id,
+        f.requester_id === profile.id ? f.addressee_id : f.requester_id
       );
 
       if (otherIds.length === 0) {
@@ -59,10 +57,7 @@ export function useFriends() {
         return;
       }
 
-      const { data: users } = await supabase
-        .from('users')
-        .select('*')
-        .in('id', otherIds);
+      const { data: users } = await supabase.from('users').select('*').in('id', otherIds);
 
       const userMap = new Map((users ?? []).map((u: DbUser) => [u.id, u]));
 
@@ -80,9 +75,6 @@ export function useFriends() {
         })
         .filter(Boolean) as FriendWithStatus[];
 
-      // Dedupe by user id — the OR query above can return both directions of a
-      // pair (A→B and B→A), and we'd otherwise render the same user twice.
-      // Prefer accepted over pending so a confirmed friendship wins.
       const byUser = new Map<string, FriendWithStatus>();
       for (const f of enriched) {
         const existing = byUser.get(f.id);

@@ -1,14 +1,3 @@
-// Supabase Edge Function: delete-account
-//
-// Deploy:   supabase functions deploy delete-account --no-verify-jwt
-// Secrets:  SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are auto-injected.
-//
-// Verifies the caller's JWT, then uses the service-role client to delete
-// their auth user. The public.users row cascades via the FK in supabase-schema.sql.
-//
-// We pass --no-verify-jwt because we do the verification manually below
-// (so we can return a friendly JSON error instead of the gateway's 401).
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
 
 const CORS_HEADERS = {

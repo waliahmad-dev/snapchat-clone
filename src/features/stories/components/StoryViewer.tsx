@@ -194,8 +194,6 @@ export function StoryViewer({ storyGroup, onClose, onRecordView }: Props) {
   const swipeDownToClose = Gesture.Pan().onEnd((e) => {
     'worklet';
     if (e.translationY > 100 && Math.abs(e.translationX) < 80) {
-      // Tiered dismiss: if the viewers panel is up, the first swipe-down
-      // collapses the panel only; a second swipe-down then closes the story.
       if (panelOpenSV.value === 1) return;
       runOnJS(onClose)();
     }
@@ -252,12 +250,7 @@ export function StoryViewer({ storyGroup, onClose, onRecordView }: Props) {
     });
 
   const storyGestures = useMemo(
-    () =>
-      Gesture.Race(
-        swipeDownToClose,
-        swipeUpToOpenPanel,
-        Gesture.Exclusive(holdPause, tapNav),
-      ),
+    () => Gesture.Race(swipeDownToClose, swipeUpToOpenPanel, Gesture.Exclusive(holdPause, tapNav)),
     [swipeDownToClose, swipeUpToOpenPanel, holdPause, tapNav]
   );
 

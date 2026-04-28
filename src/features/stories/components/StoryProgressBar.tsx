@@ -53,10 +53,6 @@ export function StoryProgressBar({
   }, [currentIndex, duration]);
 
   useEffect(() => {
-    // Skip the initial run — the [currentIndex, duration] effect above
-    // already scheduled the first timer. Without this guard, mount would
-    // schedule a duplicate timer that the pause path can't cancel,
-    // causing a stale onComplete (goNext → onClose on the last story).
     if (!initializedRef.current) {
       initializedRef.current = true;
       return;
@@ -83,14 +79,12 @@ export function StoryProgressBar({
   return (
     <View className="flex-row gap-1 px-2">
       {Array.from({ length: count }).map((_, i) => (
-        <View
-          key={i}
-          className="flex-1 h-0.5 bg-white/30 rounded-full overflow-hidden">
+        <View key={i} className="h-0.5 flex-1 overflow-hidden rounded-full bg-white/30">
           {i < currentIndex && (
-            <View className="h-full bg-white rounded-full" style={{ width: '100%' }} />
+            <View className="h-full rounded-full bg-white" style={{ width: '100%' }} />
           )}
           {i === currentIndex && (
-            <Animated.View className="h-full bg-white rounded-full" style={animStyle} />
+            <Animated.View className="h-full rounded-full bg-white" style={animStyle} />
           )}
         </View>
       ))}

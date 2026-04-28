@@ -25,10 +25,6 @@ export function useSearch() {
   async function search(q: string) {
     setLoading(true);
     try {
-      // Resolve the caller's block list first. blocks_select RLS only
-      // exposes rows where auth.uid() = blocker_id, so this gives us
-      // exactly the users we've blocked (spec: blocks hide the target
-      // from the blocker's search, not the other way around).
       const [{ data: rows }, { data: myBlocks }] = await Promise.all([
         supabase.from('users').select('*').ilike('username', `%${q}%`).limit(40),
         profile
@@ -36,9 +32,7 @@ export function useSearch() {
           : Promise.resolve({ data: [] as { blocked_id: string }[] }),
       ]);
 
-      const blockedIds = new Set(
-        (myBlocks ?? []).map((b: { blocked_id: string }) => b.blocked_id),
-      );
+      const blockedIds = new Set((myBlocks ?? []).map((b: { blocked_id: string }) => b.blocked_id));
 
       const filtered = (rows ?? [])
         .filter((u: DbUser) => u.id !== profile?.id)

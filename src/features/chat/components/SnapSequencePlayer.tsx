@@ -4,19 +4,13 @@ import { SnapViewer } from './SnapViewer';
 import type { DbMessage } from '@/types/database';
 
 interface Props {
-
   messageIds: string[];
   myName: string;
   conversationId: string;
   onFinish: () => void;
 }
 
-export function SnapSequencePlayer({
-  messageIds,
-  myName,
-  conversationId,
-  onFinish,
-}: Props) {
+export function SnapSequencePlayer({ messageIds, myName, conversationId, onFinish }: Props) {
   const [index, setIndex] = useState(0);
   const [rows, setRows] = useState<DbMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,16 +22,15 @@ export function SnapSequencePlayer({
     }
     let cancelled = false;
     (async () => {
-      const { data } = await supabase
-        .from('messages')
-        .select('*')
-        .in('id', messageIds);
+      const { data } = await supabase.from('messages').select('*').in('id', messageIds);
       if (cancelled) return;
       const byId = new Map((data ?? []).map((m: DbMessage) => [m.id, m]));
       setRows(messageIds.map((id) => byId.get(id)).filter((m): m is DbMessage => !!m));
       setLoading(false);
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [messageIds, onFinish]);
 
   const current = rows[index];
@@ -58,7 +51,7 @@ export function SnapSequencePlayer({
         setIndex((i) => i + 1);
       }
     },
-    [current, index, rows.length, onFinish],
+    [current, index, rows.length, onFinish]
   );
 
   const onSave = useCallback(() => {
@@ -72,7 +65,7 @@ export function SnapSequencePlayer({
       .from('messages')
       .insert({
         conversation_id: conversationId,
-        sender_id: current.sender_id, 
+        sender_id: current.sender_id,
         content: `${myName} saved a snap`,
         type: 'system',
       })
@@ -91,10 +84,6 @@ export function SnapSequencePlayer({
   if (loading || !current || !current.media_url) return null;
 
   return (
-    // key={current.id} forces SnapViewer to remount per snap so its internal
-    // timer, progress bar, imageReady, and saved state all reset from scratch.
-    // Without the key, the progress bar stays at 100% and the auto-close
-    // setTimeout never re-fires for the second+ snap in a sequence.
     <SnapViewer
       key={current.id}
       mediaPath={current.media_url}
