@@ -36,6 +36,7 @@ interface Props {
   storyGroup: StoryGroup;
   onClose: () => void;
   onRecordView: (storyId: string) => void;
+  onStoryDeleted?: () => void;
 }
 
 type ViewerRow = {
@@ -44,7 +45,7 @@ type ViewerRow = {
   user?: DbUser;
 };
 
-export function StoryViewer({ storyGroup, onClose, onRecordView }: Props) {
+export function StoryViewer({ storyGroup, onClose, onRecordView, onStoryDeleted }: Props) {
   const profile = useAuthStore((s) => s.profile);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [urlCache, setUrlCache] = useState<Record<string, string>>({});
@@ -181,10 +182,15 @@ export function StoryViewer({ storyGroup, onClose, onRecordView }: Props) {
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
-          await supabase
+          const { error } = await supabase
             .from('stories')
-            .update({ deleted_at: new Date().toISOString() })
+            .delete()
             .eq('id', currentStory.id);
+          if (error) {
+            Alert.alert('Could not delete story', error.message);
+            return;
+          }
+          onStoryDeleted?.();
           onClose();
         },
       },

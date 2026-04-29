@@ -6,6 +6,7 @@ import type { DbMessage, MessageType } from '@/types/database';
 import { MESSAGE_PAGE_SIZE } from '@constants/config';
 import { database } from '@lib/watermelondb/database';
 import Message from '@lib/watermelondb/models/Message';
+import Outbox from '@lib/watermelondb/models/Outbox';
 import { enqueueJob } from '@lib/offline/outboxRunner';
 import { JOB } from '@lib/offline/jobs';
 import { uuid } from '@lib/offline/uuid';
@@ -56,8 +57,22 @@ async function findOptimisticMatch(row: RemoteMessageRow): Promise<Message | nul
   return candidates.slice().sort((a, b) => a.createdAt - b.createdAt)[0];
 }
 
+async function hasPendingMutation(remoteId: string, prefix: string): Promise<boolean> {
+  const rows = await database
+    .get<Outbox>('outbox')
+    .query(Q.where('group_key', `${prefix}:${remoteId}`))
+    .fetch();
+  return rows.length > 0;
+}
+
 async function upsertRemoteRow(row: RemoteMessageRow): Promise<void> {
   const collection = messagesCollection();
+
+  const [savePending, viewPending, deletePending] = await Promise.all([
+    hasPendingMutation(row.id, 'msg-save'),
+    hasPendingMutation(row.id, 'msg-view'),
+    hasPendingMutation(row.id, 'msg-del'),
+  ]);
 
   const existing = await collection.query(Q.where('remote_id', row.id)).fetch();
   if (existing.length > 0) {
@@ -67,9 +82,9 @@ async function upsertRemoteRow(row: RemoteMessageRow): Promise<void> {
       m.mediaUrl = row.media_url;
       m.type = row.type;
       m.createdAt = new Date(row.created_at).getTime();
-      m.viewedAt = row.viewed_at ? new Date(row.viewed_at).getTime() : null;
-      m.saved = row.saved;
-      m.deletedAt = row.deleted_at ? new Date(row.deleted_at).getTime() : null;
+      if (!viewPending) m.viewedAt = row.viewed_at ? new Date(row.viewed_at).getTime() : null;
+      if (!savePending) m.saved = row.saved;
+      if (!deletePending) m.deletedAt = row.deleted_at ? new Date(row.deleted_at).getTime() : null;
       m.replyToMessageId = row.reply_to_message_id ?? null;
       m.isOptimistic = false;
     });
@@ -81,9 +96,9 @@ async function upsertRemoteRow(row: RemoteMessageRow): Promise<void> {
     await optimistic.update((m) => {
       m.remoteId = row.id;
       m.createdAt = new Date(row.created_at).getTime();
-      m.viewedAt = row.viewed_at ? new Date(row.viewed_at).getTime() : null;
-      m.saved = row.saved;
-      m.deletedAt = row.deleted_at ? new Date(row.deleted_at).getTime() : null;
+      if (!viewPending) m.viewedAt = row.viewed_at ? new Date(row.viewed_at).getTime() : null;
+      if (!savePending) m.saved = row.saved;
+      if (!deletePending) m.deletedAt = row.deleted_at ? new Date(row.deleted_at).getTime() : null;
       m.mediaUrl = row.media_url;
       m.replyToMessageId = row.reply_to_message_id ?? null;
       m.isOptimistic = false;
@@ -320,25 +335,20 @@ export function useMessages(conversationId: string) {
   const setMessageSaved = useCallback(async (localId: string, save: boolean) => {
     const target = await findByLocalId(localId);
     if (!target?.remoteId) return;
+    const wasViewed = target.viewedAt != null;
     const ts = new Date().toISOString();
     await database.write(async () => {
       await target.update((m) => {
         m.saved = save;
-        if (!save) m.deletedAt = Date.parse(ts);
+        if (!save && wasViewed) m.deletedAt = Date.parse(ts);
       });
     });
-    if (save) {
-      await enqueueJob({
-        kind: JOB.MESSAGE_SAVE,
-        payload: { messageId: target.remoteId, field: 'saved', value: true },
-        groupKey: `msg-save:${target.remoteId}`,
-      });
-    } else {
-      await enqueueJob({
-        kind: JOB.MESSAGE_SAVE,
-        payload: { messageId: target.remoteId, field: 'saved', value: false },
-        groupKey: `msg-save:${target.remoteId}`,
-      });
+    await enqueueJob({
+      kind: JOB.MESSAGE_SAVE,
+      payload: { messageId: target.remoteId, field: 'saved', value: save },
+      groupKey: `msg-save:${target.remoteId}`,
+    });
+    if (!save && wasViewed) {
       await enqueueJob({
         kind: JOB.MESSAGE_DELETE,
         payload: { messageId: target.remoteId, field: 'deleted_at', value: ts },

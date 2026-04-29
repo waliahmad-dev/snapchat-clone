@@ -91,6 +91,7 @@ export function StoriesFeedPanel() {
               storyGroup={activeGroup}
               onClose={() => setActiveGroup(null)}
               onRecordView={recordView}
+              onStoryDeleted={refresh}
             />
           </SafeAreaProvider>
         </Modal>

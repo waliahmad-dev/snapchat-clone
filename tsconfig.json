@@ -3,17 +3,16 @@
   "compilerOptions": {
     "jsx": "react",
     "strict": true,
-    "baseUrl": ".",
     "experimentalDecorators": true,
     "paths": {
-      "@/*": ["src/*"],
-      "@features/*": ["src/features/*"],
-      "@lib/*": ["src/lib/*"],
-      "@components/*": ["src/components/*"],
-      "@hooks/*": ["src/hooks/*"],
-      "@constants/*": ["src/constants/*"],
-      "@providers/*": ["src/providers/*"],
-      "@navigation/*": ["src/navigation/*"]
+      "@/*": ["./src/*"],
+      "@features/*": ["./src/features/*"],
+      "@lib/*": ["./src/lib/*"],
+      "@components/*": ["./src/components/*"],
+      "@hooks/*": ["./src/hooks/*"],
+      "@constants/*": ["./src/constants/*"],
+      "@providers/*": ["./src/providers/*"],
+      "@navigation/*": ["./src/navigation/*"]
     }
   },
   "exclude": ["node_modules", "supabase/functions"]
