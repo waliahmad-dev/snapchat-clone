@@ -12,5 +12,6 @@ export default class Memory extends Model {
   @field('created_at') createdAt!: number;
   @text('upload_status') uploadStatus!: UploadStatus;
   @text('local_path') localPath!: string | null;
+  @text('gallery_asset_id') galleryAssetId!: string | null;
   @field('deleted_at') deletedAt!: number | null;
 }

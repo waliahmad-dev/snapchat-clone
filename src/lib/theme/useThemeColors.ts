@@ -124,14 +124,6 @@ export function getThemeColors(scheme: ThemeScheme | null | undefined): ThemeCol
   return scheme === 'light' ? light : dark;
 }
 
-/**
- * Returns the active theme palette.
- *
- * Resolution order: persisted user choice ('light' | 'dark') wins over the OS
- * scheme. When the user picks 'system' (the default), we follow the OS via
- * `useColorScheme`, which re-renders on appearance changes — so toggling Light
- * Mode in iOS/Android Settings updates the app live.
- */
 export function useThemeColors(): ThemeColors {
   const systemScheme = useColorScheme();
   const mode = useThemeStore((s) => s.mode);

@@ -7,6 +7,7 @@ import { AppProviders } from '@providers/AppProviders';
 import { useAuth } from '@features/auth/hooks/useAuth';
 import { useAuthStore } from '@features/auth/store/authStore';
 import { useAppState } from '@hooks/useAppState';
+import { useMemoriesBootstrap } from '@features/memories/lib/memoriesBootstrap';
 import { useThemeColors } from '@lib/theme/useThemeColors';
 import { useThemeStore } from '@lib/theme/themeStore';
 // import { OfflineBanner } from '@components/OfflineBanner';
@@ -19,6 +20,7 @@ function AuthGate() {
 
   useAuth();
   useAppState();
+  useMemoriesBootstrap();
 
   useEffect(() => {
     if (!isInitialized) return;

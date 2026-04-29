@@ -10,15 +10,14 @@ import {
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
-  Easing,
   useAnimatedStyle,
   useSharedValue,
-  withRepeat,
   withTiming,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { getSignedUrl } from '@lib/supabase/storage';
+import { PulsingLoader } from '@components/ui/PulsingLoader';
 
 const DURATION_MS = 15_000;
 
@@ -52,18 +51,6 @@ export function SnapViewer({
   const progressStyle = useAnimatedStyle(() => ({
     width: `${progress.value * 100}%`,
   }));
-
-  const pulse = useSharedValue(0.4);
-  const pulseStyle = useAnimatedStyle(() => ({ opacity: pulse.value }));
-
-  useEffect(() => {
-    pulse.value = withRepeat(
-      withTiming(1, { duration: 750, easing: Easing.inOut(Easing.quad) }),
-      -1,
-      true,
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   useEffect(() => {
     if (preloadedUrl) {
@@ -156,16 +143,7 @@ export function SnapViewer({
           />
         )}
 
-        {showLoader && (
-          <View style={styles.loaderWrap}>
-            <View style={styles.loaderDot}>
-              <Animated.View style={[styles.loaderCore, pulseStyle]} />
-            </View>
-            <Animated.Text style={[styles.loaderText, pulseStyle]}>
-              Loading snap…
-            </Animated.Text>
-          </View>
-        )}
+        {showLoader && <PulsingLoader label="Loading snap…" />}
 
         {loadError && (
           <View style={styles.centered}>
@@ -243,32 +221,5 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     alignItems: 'center',
-  },
-  loaderWrap: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 14,
-  },
-  loaderDot: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    borderWidth: 2,
-    borderColor: 'rgba(255,252,0,0.5)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loaderCore: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#FFFC00',
-  },
-  loaderText: {
-    color: '#FFFC00',
-    fontSize: 13,
-    fontWeight: '600',
-    letterSpacing: 0.5,
   },
 });

@@ -7,6 +7,7 @@ import { enqueueJob } from '@lib/offline/outboxRunner';
 import { JOB } from '@lib/offline/jobs';
 import { persistMedia } from '@lib/offline/persistMedia';
 import { uuid } from '@lib/offline/uuid';
+import { addAssetToMemoriesAlbum } from '@features/memories/lib/galleryIngest';
 
 export function useMemoryUpload() {
   const profile = useAuthStore((s) => s.profile);
@@ -18,6 +19,18 @@ export function useMemoryUpload() {
       const memoryUuid = uuid();
       const persistedPath = await persistMedia(localUri, `memory_${memoryUuid}.jpg`);
 
+      let galleryAssetId: string | null = null;
+      const { granted } = await MediaLibrary.getPermissionsAsync();
+      if (granted) {
+        try {
+          const asset = await MediaLibrary.createAssetAsync(localUri);
+          galleryAssetId = asset.id;
+          await addAssetToMemoriesAlbum(asset.id);
+        } catch {
+          await MediaLibrary.saveToLibraryAsync(localUri).catch(() => {});
+        }
+      }
+
       let localRecord: Memory | null = null;
       await database.write(async () => {
         localRecord = await database.get<Memory>('memories').create((m) => {
@@ -27,13 +40,9 @@ export function useMemoryUpload() {
           m.createdAt = Date.now();
           m.uploadStatus = 'pending';
           m.localPath = persistedPath;
+          m.galleryAssetId = galleryAssetId;
         });
       });
-
-      const { granted } = await MediaLibrary.getPermissionsAsync();
-      if (granted) {
-        await MediaLibrary.saveToLibraryAsync(localUri).catch(() => {});
-      }
 
       if (!localRecord) return;
       await enqueueJob({

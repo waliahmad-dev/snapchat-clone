@@ -39,5 +39,16 @@ export const migrations = schemaMigrations({
         }),
       ],
     },
+    {
+      toVersion: 4,
+      steps: [
+        addColumns({
+          table: 'memories',
+          columns: [
+            { name: 'gallery_asset_id', type: 'string', isOptional: true },
+          ],
+        }),
+      ],
+    },
   ],
 });
