@@ -15,10 +15,6 @@ export interface SendSnapOptions {
   postToMyStory?: boolean;
 }
 
-/**
- * Persist the snap locally as optimistic messages and enqueue the network work.
- * Returns immediately — the caller sees "sent" and the outbox flushes when online.
- */
 export async function sendSnapToRecipients({
   senderId,
   senderName,
@@ -48,18 +44,12 @@ export async function sendSnapToRecipients({
     systemMessageIds[rid] = uuid();
   }
 
-  // Optimistically write snap messages into local conversations the user already knows about.
-  // (If a conversation doesn't exist yet locally — e.g. first message ever — the snap will
-  //  appear once the outbox flushes and realtime hydrates the conversation.)
   await database.write(async () => {
     for (const rid of recipientIds) {
       const [p1, p2] = [senderId, rid].sort();
       const matches = await database
         .get<Conversation>('conversations')
-        .query(
-          Q.where('participant_1_id', p1),
-          Q.where('participant_2_id', p2),
-        )
+        .query(Q.where('participant_1_id', p1), Q.where('participant_2_id', p2))
         .fetch();
       const conv = matches[0];
       if (!conv) continue;
