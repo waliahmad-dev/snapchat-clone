@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { View, Text, TextInput, Pressable, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -36,12 +36,12 @@ export default function LoginScreen() {
           </Text>
         </Pressable>
 
-        <Text className="text-3xl font-bold mb-8" style={{ color: c.textPrimary }}>
+        <Text className="mb-8 text-3xl font-bold" style={{ color: c.textPrimary }}>
           Log In
         </Text>
 
         <TextInput
-          className="rounded-xl px-4 py-4 mb-4 text-base"
+          className="mb-4 rounded-xl px-4 py-4 text-base"
           style={{ backgroundColor: c.inputBg, color: c.textPrimary }}
           placeholder="Email"
           placeholderTextColor={c.placeholder}
@@ -52,7 +52,7 @@ export default function LoginScreen() {
           autoComplete="email"
         />
         <TextInput
-          className="rounded-xl px-4 py-4 mb-8 text-base"
+          className="mb-8 rounded-xl px-4 py-4 text-base"
           style={{ backgroundColor: c.inputBg, color: c.textPrimary }}
           placeholder="Password"
           placeholderTextColor={c.placeholder}
@@ -65,12 +65,12 @@ export default function LoginScreen() {
         <Pressable
           onPress={handleLogin}
           disabled={loading}
-          className="rounded-full py-4 items-center"
+          className="items-center rounded-full py-4"
           style={{ backgroundColor: c.accent }}>
           {loading ? (
             <ActivityIndicator color={c.accentText} />
           ) : (
-            <Text className="font-bold text-base" style={{ color: c.accentText }}>
+            <Text className="text-base font-bold" style={{ color: c.accentText }}>
               Log In
             </Text>
           )}

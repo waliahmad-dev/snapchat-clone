@@ -16,6 +16,7 @@ export async function uploadToStorage(
   bucket: StorageBucket,
   path: string,
   localUri: string,
+  options?: { upsert?: boolean },
 ): Promise<string> {
   const base64 = await FileSystem.readAsStringAsync(localUri, {
     encoding: FileSystem.EncodingType.Base64,
@@ -24,7 +25,7 @@ export async function uploadToStorage(
 
   const { error } = await supabase.storage.from(bucket).upload(path, bytes, {
     contentType: 'image/jpeg',
-    upsert: false,
+    upsert: options?.upsert ?? false,
   });
 
   if (error) throw new Error(`Upload failed: ${error.message}`);

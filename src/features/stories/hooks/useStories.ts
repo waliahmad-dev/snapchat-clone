@@ -48,10 +48,11 @@ export function useStories() {
     if (!profile) return;
     setLoading(true);
     try {
-      const { data: stories } = await supabase
+      const res = await supabase
         .from('stories')
         .select('*, story_views(*)')
         .order('created_at', { ascending: false });
+      const stories = res.data;
 
       if (!stories) return;
 
@@ -91,6 +92,8 @@ export function useStories() {
       });
 
       setStoryGroups(result);
+    } catch {
+      // offline — keep last known story feed
     } finally {
       setLoading(false);
     }
@@ -98,13 +101,17 @@ export function useStories() {
 
   async function recordView(storyId: string) {
     if (!profile) return;
-    const allowed = await checkStoryViewThrottle(profile.id, storyId);
-    if (!allowed) return;
+    try {
+      const allowed = await checkStoryViewThrottle(profile.id, storyId);
+      if (!allowed) return;
 
-    await supabase.from('story_views').upsert({
-      story_id: storyId,
-      viewer_id: profile.id,
-    });
+      await supabase.from('story_views').upsert({
+        story_id: storyId,
+        viewer_id: profile.id,
+      });
+    } catch {
+      // offline — view will fail silently; not user-actionable
+    }
   }
 
   return { storyGroups, loading, recordView, refresh: loadStories };

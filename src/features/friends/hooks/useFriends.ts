@@ -1,5 +1,8 @@
 import { useEffect, useId, useState } from 'react';
+import { Q } from '@nozbe/watermelondb';
 import { supabase } from '@lib/supabase/client';
+import { database } from '@lib/watermelondb/database';
+import Friend from '@lib/watermelondb/models/Friend';
 import { useAuthStore } from '@features/auth/store/authStore';
 import type { DbUser, DbFriendship, FriendshipStatus } from '@/types/database';
 
@@ -7,6 +10,22 @@ export interface FriendWithStatus extends DbUser {
   friendshipId: string;
   status: FriendshipStatus;
   isRequester: boolean;
+}
+
+function toFriendWithStatus(f: Friend): FriendWithStatus {
+  return {
+    id: f.userId,
+    username: f.username,
+    display_name: f.displayName,
+    avatar_url: f.avatarUrl,
+    snap_score: f.snapScore,
+    date_of_birth: null,
+    phone: null,
+    created_at: new Date(f.createdAt).toISOString(),
+    friendshipId: f.remoteId,
+    status: f.status,
+    isRequester: f.isRequester,
+  };
 }
 
 export function useFriends() {
@@ -18,14 +37,32 @@ export function useFriends() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!profile) return;
-    loadFriends();
+    const sub = database
+      .get<Friend>('friends')
+      .query(Q.where('status', Q.notEq('blocked')))
+      .observe()
+      .subscribe((rows) => {
+        const all = rows.map(toFriendWithStatus);
+        setFriends(all.filter((f) => f.status === 'accepted'));
+        setPendingReceived(
+          all.filter((f) => f.status === 'pending' && !f.isRequester),
+        );
+        setPendingSent(all.filter((f) => f.status === 'pending' && f.isRequester));
+        setLoading(false);
+      });
+    return () => sub.unsubscribe();
+  }, []);
 
-    const channelName = `friendships:${profile.id}:${instanceId}`;
+  useEffect(() => {
+    if (!profile) return;
+    syncFromServer();
+
     const sub = supabase
-      .channel(channelName)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships' }, () =>
-        loadFriends()
+      .channel(`friendships:${profile.id}:${instanceId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'friendships' },
+        () => syncFromServer(),
       )
       .subscribe();
 
@@ -34,9 +71,8 @@ export function useFriends() {
     };
   }, [profile?.id, instanceId]);
 
-  async function loadFriends() {
+  async function syncFromServer() {
     if (!profile) return;
-    setLoading(true);
     try {
       const { data: friendships } = await supabase
         .from('friendships')
@@ -47,50 +83,71 @@ export function useFriends() {
       if (!friendships) return;
 
       const otherIds = friendships.map((f: DbFriendship) =>
-        f.requester_id === profile.id ? f.addressee_id : f.requester_id
+        f.requester_id === profile.id ? f.addressee_id : f.requester_id,
       );
 
-      if (otherIds.length === 0) {
-        setFriends([]);
-        setPendingReceived([]);
-        setPendingSent([]);
-        return;
+      const userMap = new Map<string, DbUser>();
+      if (otherIds.length > 0) {
+        const { data: users } = await supabase
+          .from('users')
+          .select('*')
+          .in('id', otherIds);
+        for (const u of (users ?? []) as DbUser[]) userMap.set(u.id, u);
       }
 
-      const { data: users } = await supabase.from('users').select('*').in('id', otherIds);
+      const collection = database.get<Friend>('friends');
+      const existing = await collection.query().fetch();
+      const byUser = new Map<string, Friend>();
+      for (const e of existing) byUser.set(e.userId, e);
 
-      const userMap = new Map((users ?? []).map((u: DbUser) => [u.id, u]));
+      const seenUserIds = new Set<string>();
 
-      const enriched: FriendWithStatus[] = friendships
-        .map((f: DbFriendship) => {
-          const otherId = f.requester_id === profile.id ? f.addressee_id : f.requester_id;
+      await database.write(async () => {
+        for (const f of friendships as DbFriendship[]) {
+          const otherId =
+            f.requester_id === profile.id ? f.addressee_id : f.requester_id;
           const user = userMap.get(otherId);
-          if (!user) return null;
-          return {
-            ...user,
-            friendshipId: f.id,
-            status: f.status,
-            isRequester: f.requester_id === profile.id,
-          } as FriendWithStatus;
-        })
-        .filter(Boolean) as FriendWithStatus[];
+          if (!user) continue;
+          seenUserIds.add(otherId);
 
-      const byUser = new Map<string, FriendWithStatus>();
-      for (const f of enriched) {
-        const existing = byUser.get(f.id);
-        if (!existing || (existing.status !== 'accepted' && f.status === 'accepted')) {
-          byUser.set(f.id, f);
+          const existingRow = byUser.get(otherId);
+          if (existingRow) {
+            await existingRow.update((row) => {
+              row.remoteId = f.id;
+              row.username = user.username;
+              row.displayName = user.display_name;
+              row.avatarUrl = user.avatar_url;
+              row.status = f.status;
+              row.isRequester = f.requester_id === profile.id;
+              row.snapScore = user.snap_score;
+              row.syncedAt = Date.now();
+            });
+          } else {
+            await collection.create((row) => {
+              row.remoteId = f.id;
+              row.userId = otherId;
+              row.username = user.username;
+              row.displayName = user.display_name;
+              row.avatarUrl = user.avatar_url;
+              row.status = f.status;
+              row.isRequester = f.requester_id === profile.id;
+              row.snapScore = user.snap_score;
+              row.createdAt = new Date(f.created_at).getTime();
+              row.syncedAt = Date.now();
+            });
+          }
         }
-      }
-      const deduped = Array.from(byUser.values());
 
-      setFriends(deduped.filter((f) => f.status === 'accepted'));
-      setPendingReceived(deduped.filter((f) => f.status === 'pending' && !f.isRequester));
-      setPendingSent(deduped.filter((f) => f.status === 'pending' && f.isRequester));
-    } finally {
-      setLoading(false);
+        for (const [userId, row] of byUser) {
+          if (!seenUserIds.has(userId)) {
+            await row.destroyPermanently();
+          }
+        }
+      });
+    } catch (err) {
+      console.warn('[Friends] sync failed:', err);
     }
   }
 
-  return { friends, pendingReceived, pendingSent, loading, refresh: loadFriends };
+  return { friends, pendingReceived, pendingSent, loading, refresh: syncFromServer };
 }

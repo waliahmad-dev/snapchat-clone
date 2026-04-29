@@ -37,21 +37,25 @@ export function useStreak(userId1: string, userId2: string) {
   }, [userId1, userId2, instanceId]);
 
   async function load() {
-    const [data, ttl] = await Promise.all([
-      getStreak(userId1, userId2),
-      getStreakTTL(userId1, userId2),
-    ]);
+    try {
+      const [data, ttl] = await Promise.all([
+        getStreak(userId1, userId2),
+        getStreakTTL(userId1, userId2),
+      ]);
 
-    if (!data || ttl <= 0) {
-      setStreak(null);
-      return;
+      if (!data || ttl <= 0) {
+        setStreak(null);
+        return;
+      }
+
+      setStreak({
+        count: data.count,
+        ttlSeconds: ttl,
+        isWarning: ttl < 6 * 3600,
+      });
+    } catch {
+      // offline — keep last known streak; outbox banner indicates state
     }
-
-    setStreak({
-      count: data.count,
-      ttlSeconds: ttl,
-      isWarning: ttl < 6 * 3600,
-    });
   }
 
   return streak;

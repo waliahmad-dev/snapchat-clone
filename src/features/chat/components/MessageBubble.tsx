@@ -240,14 +240,18 @@ function TextBubble({
       return;
     }
     let cancelled = false;
-    supabase
-      .from('messages')
-      .select('*')
-      .eq('id', replyId)
-      .maybeSingle()
-      .then(({ data }) => {
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from('messages')
+          .select('*')
+          .eq('id', replyId)
+          .maybeSingle();
         if (!cancelled) setQuoted(data as DbMessage | null);
-      });
+      } catch {
+        // offline — quote preview will populate when reconnected
+      }
+    })();
     return () => {
       cancelled = true;
     };

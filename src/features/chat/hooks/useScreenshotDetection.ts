@@ -1,7 +1,11 @@
 import { useEffect } from 'react';
 import * as ScreenCapture from 'expo-screen-capture';
-import { supabase } from '@lib/supabase/client';
+import { database } from '@lib/watermelondb/database';
+import Message from '@lib/watermelondb/models/Message';
 import { useAuthStore } from '@features/auth/store/authStore';
+import { enqueueJob } from '@lib/offline/outboxRunner';
+import { JOB } from '@lib/offline/jobs';
+import { uuid } from '@lib/offline/uuid';
 
 export function useScreenshotDetection(conversationId: string) {
   const profile = useAuthStore((s) => s.profile);
@@ -10,11 +14,35 @@ export function useScreenshotDetection(conversationId: string) {
     if (!conversationId || !profile) return;
 
     const subscription = ScreenCapture.addScreenshotListener(async () => {
-      await supabase.from('messages').insert({
-        conversation_id: conversationId,
-        sender_id: profile.id,
-        content: `${profile.display_name} took a screenshot 📸`,
-        type: 'system',
+      const messageId = uuid();
+      const content = `${profile.display_name} took a screenshot 📸`;
+
+      await database.write(async () => {
+        await database.get<Message>('messages').create((m) => {
+          m.remoteId = messageId;
+          m.conversationId = conversationId;
+          m.senderId = profile.id;
+          m.content = content;
+          m.mediaUrl = null;
+          m.type = 'system';
+          m.createdAt = Date.now();
+          m.viewedAt = null;
+          m.saved = false;
+          m.deletedAt = null;
+          m.replyToMessageId = null;
+          m.isOptimistic = true;
+        });
+      });
+
+      await enqueueJob({
+        kind: JOB.SYSTEM_MESSAGE,
+        payload: {
+          messageId,
+          conversationId,
+          senderId: profile.id,
+          content,
+        },
+        groupKey: `sysmsg:${messageId}`,
       });
     });
 

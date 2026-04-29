@@ -5,6 +5,7 @@ import { WatermelonProvider } from './WatermelonProvider';
 import { QueryProvider } from './QueryProvider';
 import { SupabaseProvider } from './SupabaseProvider';
 import { NotificationProvider } from './NotificationProvider';
+import { OfflineProvider } from './OfflineProvider';
 
 interface Props {
   children: React.ReactNode;
@@ -17,7 +18,9 @@ export function AppProviders({ children }: Props) {
         <SupabaseProvider>
           <QueryProvider>
             <WatermelonProvider>
-              <NotificationProvider>{children}</NotificationProvider>
+              <OfflineProvider>
+                <NotificationProvider>{children}</NotificationProvider>
+              </OfflineProvider>
             </WatermelonProvider>
           </QueryProvider>
         </SupabaseProvider>

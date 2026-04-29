@@ -1,6 +1,5 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import {
-  View,
   Text,
   TextInput,
   Pressable,
@@ -68,18 +67,18 @@ export default function SignupScreen() {
         className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView className="flex-1 px-8" contentContainerStyle={{ paddingBottom: 40 }}>
-          <Pressable onPress={() => router.back()} className="mt-8 mb-8">
+          <Pressable onPress={() => router.back()} className="mb-8 mt-8">
             <Text className="text-base" style={{ color: c.accent }}>
               ← Back
             </Text>
           </Pressable>
 
-          <Text className="text-3xl font-bold mb-8" style={{ color: c.textPrimary }}>
+          <Text className="mb-8 text-3xl font-bold" style={{ color: c.textPrimary }}>
             Create Account
           </Text>
 
           <TextInput
-            className="rounded-xl px-4 py-4 mb-4 text-base"
+            className="mb-4 rounded-xl px-4 py-4 text-base"
             style={inputStyle}
             placeholder="Display Name"
             placeholderTextColor={c.placeholder}
@@ -88,7 +87,7 @@ export default function SignupScreen() {
             autoComplete="name"
           />
           <TextInput
-            className="rounded-xl px-4 py-4 mb-4 text-base"
+            className="mb-4 rounded-xl px-4 py-4 text-base"
             style={inputStyle}
             placeholder="Username (e.g. snapuser42)"
             placeholderTextColor={c.placeholder}
@@ -98,7 +97,7 @@ export default function SignupScreen() {
             autoComplete="username-new"
           />
           <TextInput
-            className="rounded-xl px-4 py-4 mb-4 text-base"
+            className="mb-4 rounded-xl px-4 py-4 text-base"
             style={inputStyle}
             placeholder="Email"
             placeholderTextColor={c.placeholder}
@@ -109,7 +108,7 @@ export default function SignupScreen() {
             autoComplete="email"
           />
           <TextInput
-            className="rounded-xl px-4 py-4 mb-8 text-base"
+            className="mb-8 rounded-xl px-4 py-4 text-base"
             style={inputStyle}
             placeholder="Password (8+ characters)"
             placeholderTextColor={c.placeholder}
@@ -122,12 +121,12 @@ export default function SignupScreen() {
           <Pressable
             onPress={handleSignup}
             disabled={loading}
-            className="rounded-full py-4 items-center"
+            className="items-center rounded-full py-4"
             style={{ backgroundColor: c.accent }}>
             {loading ? (
               <ActivityIndicator color={c.accentText} />
             ) : (
-              <Text className="font-bold text-base" style={{ color: c.accentText }}>
+              <Text className="text-base font-bold" style={{ color: c.accentText }}>
                 Create Account
               </Text>
             )}

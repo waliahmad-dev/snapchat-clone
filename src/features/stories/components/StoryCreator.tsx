@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, Alert, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
-import { supabase } from '@lib/supabase/client';
-import { uploadToStorage } from '@lib/supabase/storage';
 import { useAuthStore } from '@features/auth/store/authStore';
+import { enqueueJob } from '@lib/offline/outboxRunner';
+import { JOB, type StoryPostJob } from '@lib/offline/jobs';
+import { persistMedia } from '@lib/offline/persistMedia';
+import { uuid } from '@lib/offline/uuid';
 
 interface Props {
   capturedUri: string;
@@ -19,18 +20,28 @@ export function StoryCreator({ capturedUri, onDone, onCancel }: Props) {
     if (!profile) return;
     setPosting(true);
     try {
-      const path = `${profile.id}/${Date.now()}.jpg`;
-      await uploadToStorage('stories', path, capturedUri);
+      const storyId = uuid();
+      const persistedUri = await persistMedia(capturedUri, `story_${storyId}.jpg`);
+      const storagePath = `${profile.id}/${storyId}.jpg`;
 
-      const { error } = await supabase.from('stories').insert({
-        user_id: profile.id,
-        media_url: path,
+      const job: StoryPostJob = {
+        storyId,
+        userId: profile.id,
+        imageUri: persistedUri,
+        storagePath,
+      };
+
+      await enqueueJob({
+        kind: JOB.STORY_POST,
+        payload: job,
+        groupKey: `story:${storyId}`,
       });
-
-      if (error) throw error;
       onDone();
-    } catch (err: any) {
-      Alert.alert('Failed to post story', err.message);
+    } catch (err) {
+      Alert.alert(
+        'Failed to queue story',
+        err instanceof Error ? err.message : 'Please try again.',
+      );
     } finally {
       setPosting(false);
     }

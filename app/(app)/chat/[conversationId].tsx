@@ -3,6 +3,7 @@ import { View, Text, FlatList, Pressable, ActivityIndicator } from 'react-native
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { Q } from '@nozbe/watermelondb';
 import { useMessages } from '@features/chat/hooks/useMessages';
 import { useScreenshotDetection } from '@features/chat/hooks/useScreenshotDetection';
 import { useStreak } from '@features/chat/hooks/useStreak';
@@ -14,6 +15,8 @@ import { Avatar } from '@components/ui/Avatar';
 import { useAuthStore } from '@features/auth/store/authStore';
 import { useCameraStore } from '@features/camera/store/cameraStore';
 import { supabase } from '@lib/supabase/client';
+import { database } from '@lib/watermelondb/database';
+import Friend from '@lib/watermelondb/models/Friend';
 import { useThemeColors } from '@lib/theme/useThemeColors';
 import type { DbUser } from '@/types/database';
 
@@ -52,22 +55,43 @@ export default function ConversationScreen() {
 
   useEffect(() => {
     if (!params.friendId) return;
-    let cancelled = false;
-    supabase
-      .from('users')
-      .select('*')
-      .eq('id', params.friendId)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (cancelled) return;
-        if (!data) {
-          router.replace('/(app)/chat');
-          return;
-        }
-        setFriend(data);
+    const sub = database
+      .get<Friend>('friends')
+      .query(Q.where('user_id', params.friendId))
+      .observe()
+      .subscribe((rows) => {
+        if (rows.length === 0) return;
+        const row = rows[0];
+        setFriend({
+          id: row.userId,
+          username: row.username,
+          display_name: row.displayName,
+          avatar_url: row.avatarUrl,
+          snap_score: row.snapScore,
+          date_of_birth: null,
+          phone: null,
+          created_at: new Date(row.createdAt).toISOString(),
+        });
       });
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', params.friendId)
+          .maybeSingle();
+        if (cancelled || !data) return;
+        setFriend((prev) => prev ?? (data as DbUser));
+      } catch {
+        // offline — local friends cache already populated the header
+      }
+    })();
+
     return () => {
       cancelled = true;
+      sub.unsubscribe();
     };
   }, [params.friendId, router]);
 

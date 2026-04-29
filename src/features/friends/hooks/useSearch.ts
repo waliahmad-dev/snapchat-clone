@@ -40,6 +40,8 @@ export function useSearch() {
         .slice(0, 20);
 
       setResults(filtered);
+    } catch {
+      // offline — leave previous results in place; spinner clears in finally
     } finally {
       setLoading(false);
     }
