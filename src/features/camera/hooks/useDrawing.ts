@@ -15,7 +15,8 @@ interface CompletedPath {
 }
 
 export function useDrawing() {
-  const { drawingColor, drawingStrokeWidth } = useCameraStore();
+  const drawingColor = useCameraStore((s) => s.drawingColor);
+  const drawingStrokeWidth = useCameraStore((s) => s.drawingStrokeWidth);
   const [completedPaths, setCompletedPaths] = useState<CompletedPath[]>([]);
   const [activePath, setActivePath] = useState<ActivePath | null>(null);
   const [undoStack, setUndoStack] = useState<CompletedPath[][]>([]);

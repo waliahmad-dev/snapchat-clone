@@ -8,6 +8,7 @@ import { supabase } from '@lib/supabase/client';
 import { getSignedUrl } from '@lib/supabase/storage';
 import { SystemEventBubble } from './SystemEventBubble';
 import { SnapViewer } from './SnapViewer';
+import { SwipeToReply } from './SwipeToReply';
 import { useReplyStore } from '../store/replyStore';
 import { useThemeColors, type ThemeColors } from '@lib/theme/useThemeColors';
 
@@ -109,6 +110,15 @@ function SnapBubble({
     onPostSystem(`${authorName} unsaved a snap`);
   }
 
+  function startReply() {
+    setReplyTarget({
+      messageId: message.id,
+      preview: '📸 Snap',
+      authorName,
+      isSnap: true,
+    });
+  }
+
   function handleLongPress() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (isOwn) {
@@ -126,16 +136,7 @@ function SnapBubble({
     } else {
       Alert.alert('Reply to snap?', '', [
         { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Reply',
-          onPress: () =>
-            setReplyTarget({
-              messageId: message.id,
-              preview: '📸 Snap',
-              authorName,
-              isSnap: true,
-            }),
-        },
+        { text: 'Reply', onPress: startReply },
       ]);
     }
   }
@@ -144,24 +145,38 @@ function SnapBubble({
     const previewUri = signedThumb ?? signedFull;
     return (
       <>
-        <Pressable
-          onPress={openSnap}
-          onLongPress={handleLongPress}
-          delayLongPress={350}
-          className={`mx-4 my-1.5 rounded-2xl overflow-hidden ${isOwn ? 'self-end' : 'self-start'}`}
-          style={styles.savedPreview}>
-          {previewUri ? (
-            <Image source={{ uri: previewUri }} style={styles.previewImage} resizeMode="cover" />
-          ) : (
-            <View style={[styles.previewImage, styles.previewPlaceholder]} />
-          )}
-          <View style={[styles.savedBadge, { backgroundColor: c.accent }]}>
-            <Ionicons name="bookmark" size={12} color={c.accentText} />
-            <Text style={{ color: c.accentText, fontWeight: '700', fontSize: 10, marginLeft: 4 }}>
-              SAVED
-            </Text>
+        <SwipeToReply isOwn={isOwn} onTriggerReply={startReply}>
+          <View className={`flex-row ${isOwn ? 'justify-end' : 'justify-start'} px-4`}>
+            <Pressable
+              onPress={openSnap}
+              onLongPress={handleLongPress}
+              delayLongPress={350}
+              className="my-1.5 rounded-2xl overflow-hidden"
+              style={styles.savedPreview}>
+              {previewUri ? (
+                <Image
+                  source={{ uri: previewUri }}
+                  style={styles.previewImage}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={[styles.previewImage, styles.previewPlaceholder]} />
+              )}
+              <View style={[styles.savedBadge, { backgroundColor: c.accent }]}>
+                <Ionicons name="bookmark" size={12} color={c.accentText} />
+                <Text
+                  style={{
+                    color: c.accentText,
+                    fontWeight: '700',
+                    fontSize: 10,
+                    marginLeft: 4,
+                  }}>
+                  SAVED
+                </Text>
+              </View>
+            </Pressable>
           </View>
-        </Pressable>
+        </SwipeToReply>
 
         {viewerOpen && message.media_url && (
           <SnapViewer
@@ -186,24 +201,26 @@ function SnapBubble({
 
   return (
     <>
-      <Pressable
-        onPress={openSnap}
-        onLongPress={handleLongPress}
-        delayLongPress={350}
-        disabled={!canTap && !isOwn}
-        style={styles.bannerWrap}>
-        <View style={[styles.banner, bannerStyle, !canTap && { opacity: 0.75 }]}>
-          <View style={styles.squareIndicator}>
-            <Ionicons name="play" size={12} color="#FFFFFF" />
+      <SwipeToReply isOwn={isOwn} onTriggerReply={startReply}>
+        <Pressable
+          onPress={openSnap}
+          onLongPress={handleLongPress}
+          delayLongPress={350}
+          disabled={!canTap && !isOwn}
+          style={styles.bannerWrap}>
+          <View style={[styles.banner, bannerStyle, !canTap && { opacity: 0.75 }]}>
+            <View style={styles.squareIndicator}>
+              <Ionicons name="play" size={12} color="#FFFFFF" />
+            </View>
+            <Text
+              style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 16, flex: 1 }}
+              numberOfLines={1}>
+              {label}
+            </Text>
+            <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.8)" />
           </View>
-          <Text
-            style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 16, flex: 1 }}
-            numberOfLines={1}>
-            {label}
-          </Text>
-          <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.8)" />
-        </View>
-      </Pressable>
+        </Pressable>
+      </SwipeToReply>
 
       {viewerOpen && message.media_url && (
         <SnapViewer
@@ -268,6 +285,15 @@ function TextBubble({
     }
   }
 
+  function startReply() {
+    setReplyTarget({
+      messageId: message.id,
+      preview: (message.content ?? '').slice(0, 80) || 'Message',
+      authorName,
+      isSnap: false,
+    });
+  }
+
   function handleLongPress() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (isOwn) {
@@ -285,16 +311,7 @@ function TextBubble({
     } else {
       Alert.alert('Reply to this message?', '', [
         { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Reply',
-          onPress: () =>
-            setReplyTarget({
-              messageId: message.id,
-              preview: (message.content ?? '').slice(0, 80) || 'Message',
-              authorName,
-              isSnap: false,
-            }),
-        },
+        { text: 'Reply', onPress: startReply },
       ]);
     }
   }
@@ -302,11 +319,12 @@ function TextBubble({
   const bubbleStyle = bubbleColors(c, isOwn);
 
   return (
-    <View className={`flex-row ${isOwn ? 'justify-end' : 'justify-start'} my-1 px-4`}>
-      <Pressable
-        onPress={toggleSave}
-        onLongPress={handleLongPress}
-        delayLongPress={350}>
+    <SwipeToReply isOwn={isOwn} onTriggerReply={startReply}>
+      <View className={`flex-row ${isOwn ? 'justify-end' : 'justify-start'} my-1 px-4`}>
+        <Pressable
+          onPress={toggleSave}
+          onLongPress={handleLongPress}
+          delayLongPress={350}>
         <View
           style={[
             styles.textBubble,
@@ -364,12 +382,13 @@ function TextBubble({
             </View>
           )}
         </View>
-        <Text
-          style={{ color: c.textMuted, fontSize: 10, marginTop: 4, textAlign: 'right' }}>
-          {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
-        </Text>
-      </Pressable>
-    </View>
+          <Text
+            style={{ color: c.textMuted, fontSize: 10, marginTop: 4, textAlign: 'right' }}>
+            {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
+          </Text>
+        </Pressable>
+      </View>
+    </SwipeToReply>
   );
 }
 

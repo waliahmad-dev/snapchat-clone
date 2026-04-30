@@ -14,6 +14,7 @@ export default function MemoriesScreen() {
   const {
     memories,
     loading,
+    syncing,
     getDisplayUrl,
     getFullUrl,
     ensureLocalCopy,
@@ -37,6 +38,9 @@ export default function MemoriesScreen() {
       {loading ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator color={c.accent} />
+          <Text className="text-sm mt-3" style={{ color: c.textSecondary }}>
+            {syncing ? 'Syncing your memories…' : 'Loading your memories…'}
+          </Text>
         </View>
       ) : memories.length === 0 ? (
         <View className="flex-1 items-center justify-center px-8">

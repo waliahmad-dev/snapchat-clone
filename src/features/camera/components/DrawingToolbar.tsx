@@ -17,8 +17,10 @@ const COLORS = [
 const STROKE_SIZES = [4, 8, 12];
 
 export function DrawingToolbar() {
-  const { drawingColor, setDrawingColor, drawingStrokeWidth, setDrawingStrokeWidth } =
-    useCameraStore();
+  const drawingColor = useCameraStore((s) => s.drawingColor);
+  const setDrawingColor = useCameraStore((s) => s.setDrawingColor);
+  const drawingStrokeWidth = useCameraStore((s) => s.drawingStrokeWidth);
+  const setDrawingStrokeWidth = useCameraStore((s) => s.setDrawingStrokeWidth);
 
   function cycleStroke() {
     const idx = STROKE_SIZES.indexOf(drawingStrokeWidth);

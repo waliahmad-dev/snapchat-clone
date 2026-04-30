@@ -39,21 +39,19 @@ export function CameraMainPanel() {
   const router = useRouter();
   const requestCount = useFriendRequestCount();
   const { cameraRef, hasPermission, requestPermission, takePicture } = useCamera();
-  const {
-    facing,
-    flash,
-    zoom,
-    captureState,
-    capturedUri,
-    drawingMode,
-    toggleFacing,
-    toggleFlash,
-    setZoom,
-    setDrawingMode,
-    setCapturedUri,
-    setCaptureState,
-    reset,
-  } = useCameraStore();
+  const facing = useCameraStore((s) => s.facing);
+  const flash = useCameraStore((s) => s.flash);
+  const zoom = useCameraStore((s) => s.zoom);
+  const captureState = useCameraStore((s) => s.captureState);
+  const capturedUri = useCameraStore((s) => s.capturedUri);
+  const drawingMode = useCameraStore((s) => s.drawingMode);
+  const toggleFacing = useCameraStore((s) => s.toggleFacing);
+  const toggleFlash = useCameraStore((s) => s.toggleFlash);
+  const setZoom = useCameraStore((s) => s.setZoom);
+  const setDrawingMode = useCameraStore((s) => s.setDrawingMode);
+  const setCapturedUri = useCameraStore((s) => s.setCapturedUri);
+  const setCaptureState = useCameraStore((s) => s.setCaptureState);
+  const reset = useCameraStore((s) => s.reset);
   const {
     completedPaths,
     activePath,

@@ -1,7 +1,7 @@
 export type FriendshipStatus = 'pending' | 'accepted' | 'blocked' | 'declined';
 export type MessageType = 'text' | 'snap' | 'media' | 'system';
 export type MediaSource = 'camera' | 'saved_snap' | 'saved_story' | 'import';
-export type UploadStatus = 'pending' | 'uploading' | 'done' | 'failed';
+export type UploadStatus = 'pending' | 'uploading' | 'done' | 'failed' | 'gallery_only';
 
 export interface DbUser {
   id: string;

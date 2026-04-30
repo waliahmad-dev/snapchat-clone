@@ -24,6 +24,7 @@ import { StoryProgressBar } from './StoryProgressBar';
 import { getSignedUrl } from '@lib/supabase/storage';
 import { supabase } from '@lib/supabase/client';
 import { Avatar } from '@components/ui/Avatar';
+import { PulsingLoader } from '@components/ui/PulsingLoader';
 import { useAuthStore } from '@features/auth/store/authStore';
 import type { StoryGroup } from '../hooks/useStories';
 import type { DbUser } from '@/types/database';
@@ -36,6 +37,7 @@ interface Props {
   storyGroup: StoryGroup;
   onClose: () => void;
   onRecordView: (storyId: string) => void;
+  onStoryDeleted?: () => void;
 }
 
 type ViewerRow = {
@@ -44,13 +46,15 @@ type ViewerRow = {
   user?: DbUser;
 };
 
-export function StoryViewer({ storyGroup, onClose, onRecordView }: Props) {
+export function StoryViewer({ storyGroup, onClose, onRecordView, onStoryDeleted }: Props) {
   const profile = useAuthStore((s) => s.profile);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [urlCache, setUrlCache] = useState<Record<string, string>>({});
   const [viewers, setViewers] = useState<ViewerRow[]>([]);
   const [viewersLoading, setViewersLoading] = useState(false);
   const [paused, setPaused] = useState(false);
+  const [imageReady, setImageReady] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const hasFetchedRef = useRef<Set<string>>(new Set());
 
   const currentStory = storyGroup.stories[currentIndex];
@@ -60,6 +64,8 @@ export function StoryViewer({ storyGroup, onClose, onRecordView }: Props) {
   const panelOpenSV = useSharedValue(0);
 
   useEffect(() => {
+    setImageReady(false);
+    setImageError(false);
     loadUrl(currentStory.media_url);
     if (!isOwn) onRecordView(currentStory.id);
     setViewers([]);
@@ -181,10 +187,15 @@ export function StoryViewer({ storyGroup, onClose, onRecordView }: Props) {
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
-          await supabase
+          const { error } = await supabase
             .from('stories')
-            .update({ deleted_at: new Date().toISOString() })
+            .delete()
             .eq('id', currentStory.id);
+          if (error) {
+            Alert.alert('Could not delete story', error.message);
+            return;
+          }
+          onStoryDeleted?.();
           onClose();
         },
       },
@@ -261,14 +272,23 @@ export function StoryViewer({ storyGroup, onClose, onRecordView }: Props) {
     <View style={StyleSheet.absoluteFill} className="bg-black">
       <GestureDetector gesture={storyGestures}>
         <View style={StyleSheet.absoluteFill}>
-          {currentUrl ? (
+          {currentUrl && !imageError ? (
             <Image
               source={{ uri: currentUrl }}
-              style={StyleSheet.absoluteFill}
+              style={[StyleSheet.absoluteFill, { opacity: imageReady ? 1 : 0 }]}
               resizeMode="cover"
+              onLoad={() => setImageReady(true)}
+              onError={() => setImageError(true)}
             />
           ) : (
             <View style={StyleSheet.absoluteFill} className="bg-snap-surface" />
+          )}
+          {!imageReady && !imageError && <PulsingLoader label="Loading story…" />}
+          {imageError && (
+            <View style={StyleSheet.absoluteFill} className="items-center justify-center">
+              <Ionicons name="alert-circle-outline" size={48} color="#fff" />
+              <Text className="mt-2 text-white">Story couldn't load</Text>
+            </View>
           )}
         </View>
       </GestureDetector>
@@ -278,7 +298,7 @@ export function StoryViewer({ storyGroup, onClose, onRecordView }: Props) {
           count={storyGroup.stories.length}
           currentIndex={currentIndex}
           duration={STORY_DURATION_MS}
-          paused={paused || panelOpen}
+          paused={paused || panelOpen || !imageReady}
           onComplete={goNext}
         />
 

@@ -1,7 +1,7 @@
 import { appSchema, tableSchema } from '@nozbe/watermelondb';
 
 export const schema = appSchema({
-  version: 3,
+  version: 4,
   tables: [
     tableSchema({
       name: 'conversations',
@@ -59,6 +59,7 @@ export const schema = appSchema({
         { name: 'created_at', type: 'number' },
         { name: 'upload_status', type: 'string' },
         { name: 'local_path', type: 'string', isOptional: true },
+        { name: 'gallery_asset_id', type: 'string', isOptional: true },
         { name: 'deleted_at', type: 'number', isOptional: true },
       ],
     }),

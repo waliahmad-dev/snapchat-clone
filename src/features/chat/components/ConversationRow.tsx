@@ -16,7 +16,7 @@ interface Props {
 
 function describeStatus(
   status: ConversationStatus,
-  c: ThemeColors,
+  c: ThemeColors
 ): {
   label: string;
   icon: React.ComponentProps<typeof Ionicons>['name'];
@@ -69,25 +69,33 @@ export function ConversationRow({ conversation }: Props) {
         size={48}
       />
 
-      <View className="flex-1 mx-3">
+      <View className="mx-3 flex-1">
         <View className="flex-row items-center">
           <Text
-            className="font-semibold text-base flex-shrink"
+            className="flex-shrink text-base font-semibold"
             style={{ color: c.textPrimary }}
             numberOfLines={1}>
             {conversation.partner.display_name}
           </Text>
+          {streak && streak.count > 0 && (
+            <Text
+              className="ml-1.5 text-sm font-semibold"
+              style={{ color: c.textPrimary }}
+              numberOfLines={1}>
+              {streak.count}🔥
+            </Text>
+          )}
           {conversation.unread_count > 0 && (
             <View
-              className="ml-2 min-w-[18px] h-[18px] rounded-full px-1.5 items-center justify-center"
+              className="ml-2 h-[18px] min-w-[18px] items-center justify-center rounded-full px-1.5"
               style={{ backgroundColor: c.danger }}>
-              <Text className="font-bold text-[10px]" style={{ color: '#FFFFFF' }}>
-                {conversation.unread_count > 99 ? '99+' : conversation.unread_count}
+              <Text className="text-[10px] font-bold" style={{ color: '#FFFFFF' }}>
+                Wali {conversation.unread_count > 99 ? '99+' : conversation.unread_count}
               </Text>
             </View>
           )}
         </View>
-        <View className="flex-row items-center mt-0.5">
+        <View className="mt-0.5 flex-row items-center">
           <Ionicons name={icon} size={12} color={color} style={{ marginRight: 5 }} />
           <Text
             className="text-sm"
@@ -97,7 +105,6 @@ export function ConversationRow({ conversation }: Props) {
             }}>
             {label}
             {timeLabel ? ` · ${timeLabel}` : ''}
-            {streak && streak.count > 1 ? ` · ${streak.count}🔥` : ''}
           </Text>
         </View>
       </View>
@@ -112,7 +119,7 @@ export function ConversationRow({ conversation }: Props) {
           });
           router.push('/(app)/camera');
         }}
-        className="w-9 h-9 rounded-full items-center justify-center">
+        className="h-9 w-9 items-center justify-center rounded-full">
         <Ionicons name="camera-outline" size={22} color={c.icon} />
       </Pressable>
     </Pressable>

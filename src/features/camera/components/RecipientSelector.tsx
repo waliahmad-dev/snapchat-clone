@@ -26,7 +26,7 @@ export function RecipientSelector({ imageUri, onClose }: Props) {
   const [sendToStory, setSendToStory] = useState(false);
   const [sending, setSending] = useState(false);
   const profile = useAuthStore((s) => s.profile);
-  const { reset } = useCameraStore();
+  const reset = useCameraStore((s) => s.reset);
   const { friends: friendList, loading } = useFriends();
   const friends: DbUser[] = friendList;
 

@@ -22,7 +22,7 @@ export function MemoryCell({ memory, getUrl, onPress, onLongPress }: Props) {
 
   useEffect(() => {
     getUrl(memory).then(setUri).catch(() => {});
-  }, [memory.id, memory.uploadStatus]);
+  }, [memory.id, memory.uploadStatus, memory.galleryAssetId]);
 
   const isPending = memory.uploadStatus === 'pending' || memory.uploadStatus === 'uploading';
 

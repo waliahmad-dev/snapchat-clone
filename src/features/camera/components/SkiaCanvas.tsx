@@ -31,7 +31,7 @@ export function SkiaCanvas({
   onTouchMove,
   onTouchEnd,
 }: Props) {
-  const { drawingMode } = useCameraStore();
+  const drawingMode = useCameraStore((s) => s.drawingMode);
 
   const panGesture = Gesture.Pan()
     .enabled(drawingMode)
