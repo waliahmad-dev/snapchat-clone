@@ -14,6 +14,17 @@ export const JOB = {
   FRIEND_REMOVE: 'friend_remove',
   FRIEND_BLOCK: 'friend_block',
   STORY_VIEW: 'story_view',
+  GROUP_CREATE: 'group_create',
+  GROUP_UPDATE: 'group_update',
+  GROUP_MESSAGE_SEND: 'group_message_send',
+  GROUP_MESSAGE_VIEW: 'group_message_view',
+  GROUP_MESSAGE_SAVE: 'group_message_save',
+  GROUP_MESSAGE_DELETE: 'group_message_delete',
+  GROUP_SYSTEM_MESSAGE: 'group_system_message',
+  GROUP_MEMBER_ADD: 'group_member_add',
+  GROUP_MEMBER_LEAVE: 'group_member_leave',
+  GROUP_NOTIFICATIONS_SET: 'group_notifications_set',
+  GROUP_SCREENSHOT: 'group_screenshot',
 } as const;
 
 export type JobKind = (typeof JOB)[keyof typeof JOB];
@@ -37,6 +48,10 @@ export interface SnapSendJob {
   snapMessageIds: Record<string, string>;
   systemMessageIds: Record<string, string>;
   conversationIds: Record<string, string>;
+  // Optional group fan-out: a snap can also be delivered to one or more group chats.
+  groupIds?: string[];
+  // groupId → group_messages.id assigned client-side
+  groupMessageIds?: Record<string, string>;
 }
 
 export interface StoryPostJob {
@@ -102,4 +117,78 @@ export interface FriendBlockJob {
 export interface StoryViewJob {
   storyId: string;
   viewerId: string;
+}
+
+// ----------------------------------------------------------------------
+// Group chat jobs
+// ----------------------------------------------------------------------
+
+export interface GroupCreateJob {
+  groupId: string;
+  name: string | null;
+  createdBy: string;
+  memberIds: string[];
+  createdByMembershipId: string;
+  memberMembershipIds: Record<string, string>;
+}
+
+export interface GroupUpdateJob {
+  groupId: string;
+  name?: string | null;
+  avatarUrl?: string | null;
+}
+
+export interface GroupMessageSendJob {
+  messageId: string;
+  groupId: string;
+  senderId: string;
+  content: string | null;
+  mediaUrl: string | null;
+  type: 'text' | 'media';
+  mentions: string[];
+  replyToMessageId: string | null;
+}
+
+export interface GroupMessageViewJob {
+  messageId: string;
+  userId: string;
+}
+
+export interface GroupMessageSaveJob {
+  messageId: string;
+  save: boolean;
+}
+
+export interface GroupMessageDeleteJob {
+  messageId: string;
+}
+
+export interface GroupSystemMessageJob {
+  messageId: string;
+  groupId: string;
+  senderId: string;
+  content: string;
+}
+
+export interface GroupMemberAddJob {
+  membershipId: string;
+  groupId: string;
+  userId: string;
+}
+
+export interface GroupMemberLeaveJob {
+  membershipId: string;
+  groupId: string;
+  userId: string;
+}
+
+export interface GroupNotificationsSetJob {
+  membershipId: string;
+  setting: 'all' | 'mentions' | 'none';
+}
+
+export interface GroupScreenshotJob {
+  messageId: string;
+  groupId: string;
+  userId: string;
 }

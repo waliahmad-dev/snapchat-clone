@@ -22,7 +22,13 @@ import { useAuthStore } from '@features/auth/store/authStore';
 import { Avatar } from '@components/ui/Avatar';
 import { ensureConversation } from '@features/chat/utils/conversation';
 import { useThemeColors } from '@lib/theme/useThemeColors';
-import type { DbMessage, DbUser, DbConversation } from '@/types/database';
+import type {
+  DbMessage,
+  DbUser,
+  DbConversation,
+  DbGroupMessage,
+  GroupNotificationsSetting,
+} from '@/types/database';
 
 const SCREEN_W = Dimensions.get('window').width;
 const DURATION = 3600;
@@ -111,10 +117,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             accent: msg.type === 'snap' ? 'snap' : 'message',
             onPress: async () => {
               hide();
-              const convId = msg.conversation_id ?? await ensureConversation(
-                profile.id,
-                (sender as DbUser).id,
-              );
+              const convId =
+                msg.conversation_id ??
+                (await ensureConversation(profile.id, (sender as DbUser).id));
               if (!convId) return;
               router.push({
                 pathname: '/(app)/chat/[conversationId]',
@@ -127,6 +132,76 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             },
           });
         },
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'group_messages' },
+        async (payload) => {
+          const msg = payload.new as DbGroupMessage;
+
+          if (msg.sender_id === profile.id) return;
+          if (msg.type === 'system') return;
+
+          const currentPath = pathnameRef.current;
+          if (currentPath.includes(`/chat/group/${msg.group_id}`)) return;
+
+          // Only notify if I'm an active member of this group.
+          const { data: myMembership } = await supabase
+            .from('group_members')
+            .select('notifications, left_at')
+            .eq('group_id', msg.group_id)
+            .eq('user_id', profile.id)
+            .is('left_at', null)
+            .maybeSingle();
+          if (!myMembership) return;
+
+          const setting =
+            (myMembership as { notifications: GroupNotificationsSetting })
+              .notifications ?? 'all';
+          const iAmMentioned = (msg.mentions ?? []).includes(profile.id);
+          if (setting === 'none' && !iAmMentioned) return;
+          if (setting === 'mentions' && !iAmMentioned) return;
+
+          const [{ data: sender }, { data: group }] = await Promise.all([
+            supabase
+              .from('users')
+              .select('id, display_name, username, avatar_url')
+              .eq('id', msg.sender_id)
+              .maybeSingle(),
+            supabase
+              .from('group_chats')
+              .select('id, name')
+              .eq('id', msg.group_id)
+              .maybeSingle(),
+          ]);
+          if (!sender) return;
+
+          const senderUser = sender as DbUser;
+          const groupName =
+            (group as { name?: string | null } | null)?.name?.trim() ||
+            senderUser.display_name;
+          const previewBody =
+            msg.type === 'media'
+              ? `📷 ${senderUser.display_name} sent a snap`
+              : iAmMentioned
+                ? `🏷️ ${senderUser.display_name} mentioned you`
+                : `💬 ${senderUser.display_name}: ${msg.content ?? ''}`;
+
+          showToast({
+            id: msg.id,
+            title: groupName,
+            body: previewBody,
+            avatarUrl: senderUser.avatar_url,
+            accent: msg.type === 'media' ? 'snap' : 'message',
+            onPress: () => {
+              hide();
+              router.push({
+                pathname: '/(app)/chat/group/[groupId]',
+                params: { groupId: msg.group_id, name: groupName },
+              });
+            },
+          });
+        }
       )
       .subscribe();
 

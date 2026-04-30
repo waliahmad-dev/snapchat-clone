@@ -2,6 +2,7 @@ import { Q } from '@nozbe/watermelondb';
 import { database } from '@lib/watermelondb/database';
 import Conversation from '@lib/watermelondb/models/Conversation';
 import Message from '@lib/watermelondb/models/Message';
+import GroupMessage from '@lib/watermelondb/models/GroupMessage';
 import { enqueueJob } from '@lib/offline/outboxRunner';
 import { JOB, type SnapSendJob } from '@lib/offline/jobs';
 import { persistMedia } from '@lib/offline/persistMedia';
@@ -13,6 +14,7 @@ export interface SendSnapOptions {
   imageUri: string;
   recipientIds: string[];
   postToMyStory?: boolean;
+  groupIds?: string[];
 }
 
 export async function sendSnapToRecipients({
@@ -21,8 +23,9 @@ export async function sendSnapToRecipients({
   imageUri,
   recipientIds,
   postToMyStory = false,
+  groupIds = [],
 }: SendSnapOptions): Promise<void> {
-  if (recipientIds.length === 0 && !postToMyStory) return;
+  if (recipientIds.length === 0 && groupIds.length === 0 && !postToMyStory) return;
   void senderName;
 
   const batchId = uuid();
@@ -37,11 +40,15 @@ export async function sendSnapToRecipients({
   const snapMessageIds: Record<string, string> = {};
   const systemMessageIds: Record<string, string> = {};
   const conversationIds: Record<string, string> = {};
+  const groupMessageIds: Record<string, string> = {};
 
   for (const rid of recipientIds) {
     snapIds[rid] = uuid();
     snapMessageIds[rid] = uuid();
     systemMessageIds[rid] = uuid();
+  }
+  for (const gid of groupIds) {
+    groupMessageIds[gid] = uuid();
   }
 
   await database.write(async () => {
@@ -70,6 +77,23 @@ export async function sendSnapToRecipients({
         m.isOptimistic = true;
       });
     }
+
+    for (const gid of groupIds) {
+      await database.get<GroupMessage>('group_messages').create((m) => {
+        m.remoteId = groupMessageIds[gid];
+        m.groupId = gid;
+        m.senderId = senderId;
+        m.content = null;
+        m.mediaUrl = fullPath;
+        m.type = 'media';
+        m.mentionsJson = '[]';
+        m.savedByJson = '[]';
+        m.replyToMessageId = null;
+        m.createdAt = Date.now();
+        m.deletedAt = null;
+        m.isOptimistic = true;
+      });
+    }
   });
 
   const job: SnapSendJob = {
@@ -85,6 +109,8 @@ export async function sendSnapToRecipients({
     snapMessageIds,
     systemMessageIds,
     conversationIds,
+    groupIds,
+    groupMessageIds,
   };
 
   await enqueueJob({

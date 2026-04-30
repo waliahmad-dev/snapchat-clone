@@ -92,3 +92,52 @@ export interface StoryWithUser extends DbStory {
 export interface MessageWithSender extends DbMessage {
   sender: DbUser;
 }
+
+// ----------------------------------------------------------------------
+// Group chat
+// ----------------------------------------------------------------------
+
+export type GroupNotificationsSetting = 'all' | 'mentions' | 'none';
+export type GroupMessageType = 'text' | 'media' | 'system';
+
+export interface DbGroupChat {
+  id: string;
+  name: string | null;
+  avatar_url: string | null;
+  created_by: string | null;
+  last_message_text: string | null;
+  last_message_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DbGroupMember {
+  id: string;
+  group_id: string;
+  user_id: string;
+  notifications: GroupNotificationsSetting;
+  joined_at: string;
+  left_at: string | null;
+}
+
+export interface DbGroupMessage {
+  id: string;
+  group_id: string;
+  sender_id: string;
+  content: string | null;
+  media_url: string | null;
+  type: GroupMessageType;
+  mentions: string[];
+  saved_by: string[];
+  reply_to_message_id: string | null;
+  created_at: string;
+  deleted_at: string | null;
+}
+
+export interface DbGroupMessageView {
+  id: string;
+  message_id: string;
+  user_id: string;
+  viewed_at: string;
+  screenshot_at: string | null;
+}

@@ -1,7 +1,7 @@
 import { appSchema, tableSchema } from '@nozbe/watermelondb';
 
 export const schema = appSchema({
-  version: 4,
+  version: 5,
   tables: [
     tableSchema({
       name: 'conversations',
@@ -74,6 +74,58 @@ export const schema = appSchema({
         { name: 'created_at', type: 'number' },
         { name: 'next_attempt_at', type: 'number' },
         { name: 'group_key', type: 'string', isIndexed: true, isOptional: true },
+      ],
+    }),
+    tableSchema({
+      name: 'group_chats',
+      columns: [
+        { name: 'remote_id', type: 'string', isIndexed: true },
+        { name: 'name', type: 'string', isOptional: true },
+        { name: 'avatar_url', type: 'string', isOptional: true },
+        { name: 'created_by', type: 'string' },
+        { name: 'last_message_text', type: 'string', isOptional: true },
+        { name: 'last_message_at', type: 'number', isOptional: true },
+        { name: 'created_at', type: 'number' },
+        { name: 'updated_at', type: 'number' },
+        { name: 'synced_at', type: 'number', isOptional: true },
+        { name: 'deleted_at', type: 'number', isOptional: true },
+      ],
+    }),
+    tableSchema({
+      name: 'group_members',
+      columns: [
+        { name: 'remote_id', type: 'string', isIndexed: true },
+        { name: 'group_id', type: 'string', isIndexed: true },
+        { name: 'user_id', type: 'string', isIndexed: true },
+        { name: 'notifications', type: 'string' },
+        { name: 'joined_at', type: 'number' },
+        { name: 'left_at', type: 'number', isOptional: true },
+      ],
+    }),
+    tableSchema({
+      name: 'group_messages',
+      columns: [
+        { name: 'remote_id', type: 'string', isIndexed: true },
+        { name: 'group_id', type: 'string', isIndexed: true },
+        { name: 'sender_id', type: 'string', isIndexed: true },
+        { name: 'content', type: 'string', isOptional: true },
+        { name: 'media_url', type: 'string', isOptional: true },
+        { name: 'type', type: 'string' },
+        { name: 'mentions_json', type: 'string' },
+        { name: 'saved_by_json', type: 'string' },
+        { name: 'reply_to_message_id', type: 'string', isOptional: true },
+        { name: 'created_at', type: 'number' },
+        { name: 'deleted_at', type: 'number', isOptional: true },
+        { name: 'is_optimistic', type: 'boolean' },
+      ],
+    }),
+    tableSchema({
+      name: 'group_message_views',
+      columns: [
+        { name: 'message_id', type: 'string', isIndexed: true },
+        { name: 'user_id', type: 'string', isIndexed: true },
+        { name: 'viewed_at', type: 'number' },
+        { name: 'screenshot_at', type: 'number', isOptional: true },
       ],
     }),
   ],

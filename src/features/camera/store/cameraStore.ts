@@ -10,10 +10,9 @@ interface DrawingPath {
   strokeWidth: number;
 }
 
-export interface DirectRecipient {
-  id: string;
-  displayName: string;
-}
+export type DirectRecipient =
+  | { kind?: 'user'; id: string; displayName: string }
+  | { kind: 'group'; id: string; displayName: string };
 
 interface CameraState {
   facing: CameraFacing;

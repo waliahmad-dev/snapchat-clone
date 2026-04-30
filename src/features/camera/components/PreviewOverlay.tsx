@@ -165,11 +165,13 @@ export function PreviewOverlay({
         const me = useAuthStore.getState().profile;
         if (!me) throw new Error('Not signed in');
         const flatUri = await exportComposite();
+        const isGroup = directRecipient.kind === 'group';
         await sendSnapToRecipients({
           senderId: me.id,
           senderName: me.display_name,
           imageUri: flatUri,
-          recipientIds: [directRecipient.id],
+          recipientIds: isGroup ? [] : [directRecipient.id],
+          groupIds: isGroup ? [directRecipient.id] : [],
         });
         reset();
       } catch (err) {
