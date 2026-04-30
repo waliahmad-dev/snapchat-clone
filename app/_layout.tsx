@@ -9,7 +9,6 @@ import { useAuthStore } from '@features/auth/store/authStore';
 import { useAppState } from '@hooks/useAppState';
 import { useThemeColors } from '@lib/theme/useThemeColors';
 import { useThemeStore } from '@lib/theme/themeStore';
-// import { OfflineBanner } from '@components/OfflineBanner';
 import '../global.css';
 
 function AuthGate() {
@@ -67,7 +66,6 @@ export default function RootLayout() {
         <Stack.Screen name="(app)" />
         <Stack.Screen name="+not-found" />
       </Stack>
-      {/* <OfflineBanner /> */}
     </AppProviders>
   );
 }
