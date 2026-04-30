@@ -6,6 +6,7 @@ import Conversation from './models/Conversation';
 import Message from './models/Message';
 import Friend from './models/Friend';
 import Memory from './models/Memory';
+import Outbox from './models/Outbox';
 
 const nativeAvailable = !!NativeModules.WMDatabaseBridge;
 
@@ -33,5 +34,5 @@ if (nativeAvailable) {
 
 export const database = new Database({
   adapter,
-  modelClasses: [Conversation, Message, Friend, Memory],
+  modelClasses: [Conversation, Message, Friend, Memory, Outbox],
 });

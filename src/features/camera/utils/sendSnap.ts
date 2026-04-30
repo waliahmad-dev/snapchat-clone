@@ -1,8 +1,11 @@
-import { supabase } from '@lib/supabase/client';
-import { uploadToStorage } from '@lib/supabase/storage';
-import { processImage } from '@lib/imageManipulator/processor';
-import { recordSnapSent } from '@lib/redis/streak';
-import { ensureConversation } from '@features/chat/utils/conversation';
+import { Q } from '@nozbe/watermelondb';
+import { database } from '@lib/watermelondb/database';
+import Conversation from '@lib/watermelondb/models/Conversation';
+import Message from '@lib/watermelondb/models/Message';
+import { enqueueJob } from '@lib/offline/outboxRunner';
+import { JOB, type SnapSendJob } from '@lib/offline/jobs';
+import { persistMedia } from '@lib/offline/persistMedia';
+import { uuid } from '@lib/offline/uuid';
 
 export interface SendSnapOptions {
   senderId: string;
@@ -12,7 +15,6 @@ export interface SendSnapOptions {
   postToMyStory?: boolean;
 }
 
-
 export async function sendSnapToRecipients({
   senderId,
   senderName,
@@ -21,77 +23,73 @@ export async function sendSnapToRecipients({
   postToMyStory = false,
 }: SendSnapOptions): Promise<void> {
   if (recipientIds.length === 0 && !postToMyStory) return;
+  void senderName;
 
-  const processed = await processImage(imageUri);
-  const snapId = `${senderId}/${Date.now()}`;
-  const fullPath = `${snapId}_full.jpg`;
-  const thumbPath = `${snapId}_thumb.jpg`;
+  const batchId = uuid();
+  const persistedUri = await persistMedia(imageUri, `snap_${batchId}.jpg`);
 
-  await Promise.all([
-    uploadToStorage('snaps', fullPath, processed.full.uri),
-    uploadToStorage('snaps', thumbPath, processed.thumbnail.uri),
-  ]);
+  const fullPath = `${senderId}/${batchId}_full.jpg`;
+  const thumbPath = `${senderId}/${batchId}_thumb.jpg`;
+  const storyId = postToMyStory ? uuid() : null;
+  const storyPath = postToMyStory ? `${senderId}/${batchId}_story.jpg` : null;
 
-  if (recipientIds.length > 0) {
-    const { error: snapsErr } = await supabase.from('snaps').insert(
-      recipientIds.map((recipient_id) => ({
-        sender_id: senderId,
-        recipient_id,
-        media_url: fullPath,
-      })),
-    );
-    if (snapsErr) throw snapsErr;
+  const snapIds: Record<string, string> = {};
+  const snapMessageIds: Record<string, string> = {};
+  const systemMessageIds: Record<string, string> = {};
+  const conversationIds: Record<string, string> = {};
 
-    await Promise.all(
-      recipientIds.map((rid) =>
-        recordSnapSent(senderId, rid).catch(() => null),
-      ),
-    );
-
-    await Promise.all(
-      recipientIds.map(async (recipient_id) => {
-        const convId = await ensureConversation(senderId, recipient_id);
-        if (!convId) return;
-
-        const { count: priorSnapCount } = await supabase
-          .from('messages')
-          .select('id', { count: 'exact', head: true })
-          .eq('conversation_id', convId)
-          .eq('type', 'snap');
-        const isFirstSnap = !priorSnapCount;
-
-        if (isFirstSnap) {
-          await supabase.from('messages').insert({
-            conversation_id: convId,
-            sender_id: senderId,
-            content: '🔥 Streak started!',
-            type: 'system',
-          });
-        }
-
-        await supabase.from('messages').insert({
-          conversation_id: convId,
-          sender_id: senderId,
-          media_url: fullPath,
-          type: 'snap',
-        });
-
-        await supabase
-          .from('conversations')
-          .update({ updated_at: new Date().toISOString() })
-          .eq('id', convId);
-      }),
-    );
+  for (const rid of recipientIds) {
+    snapIds[rid] = uuid();
+    snapMessageIds[rid] = uuid();
+    systemMessageIds[rid] = uuid();
   }
 
-  if (postToMyStory) {
-    const storyPath = `${senderId}/${Date.now()}_story.jpg`;
-    await uploadToStorage('stories', storyPath, processed.full.uri);
-    await supabase.from('stories').insert({
-      user_id: senderId,
-      media_url: storyPath,
-    });
-  }
+  await database.write(async () => {
+    for (const rid of recipientIds) {
+      const [p1, p2] = [senderId, rid].sort();
+      const matches = await database
+        .get<Conversation>('conversations')
+        .query(Q.where('participant_1_id', p1), Q.where('participant_2_id', p2))
+        .fetch();
+      const conv = matches[0];
+      if (!conv) continue;
+      conversationIds[rid] = conv.remoteId;
 
-  void senderName; 
+      await database.get<Message>('messages').create((m) => {
+        m.remoteId = '';
+        m.conversationId = conv.remoteId;
+        m.senderId = senderId;
+        m.content = null;
+        m.mediaUrl = fullPath;
+        m.type = 'snap';
+        m.createdAt = Date.now();
+        m.viewedAt = null;
+        m.saved = false;
+        m.deletedAt = null;
+        m.replyToMessageId = null;
+        m.isOptimistic = true;
+      });
+    }
+  });
+
+  const job: SnapSendJob = {
+    senderId,
+    imageUri: persistedUri,
+    recipientIds,
+    postToMyStory,
+    fullPath,
+    thumbPath,
+    storyPath,
+    storyId,
+    snapIds,
+    snapMessageIds,
+    systemMessageIds,
+    conversationIds,
+  };
+
+  await enqueueJob({
+    kind: JOB.SNAP_SEND,
+    payload: job,
+    groupKey: `snap:${batchId}`,
+  });
 }

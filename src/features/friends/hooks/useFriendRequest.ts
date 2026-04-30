@@ -1,108 +1,213 @@
+import { Q } from '@nozbe/watermelondb';
 import { supabase } from '@lib/supabase/client';
 import { useAuthStore } from '@features/auth/store/authStore';
-import { purgeRelationshipData } from '../utils/purgeRelationship';
+import { database } from '@lib/watermelondb/database';
+import Friend from '@lib/watermelondb/models/Friend';
+import { enqueueJob } from '@lib/offline/outboxRunner';
+import { JOB } from '@lib/offline/jobs';
+import { uuid } from '@lib/offline/uuid';
+import type { DbUser } from '@/types/database';
+
+async function fetchUserSnapshot(userId: string): Promise<DbUser | null> {
+  const { data } = await supabase
+    .from('users')
+    .select('*')
+    .eq('id', userId)
+    .maybeSingle();
+  return (data as DbUser) ?? null;
+}
+
+async function upsertLocalFriend(args: {
+  remoteId: string;
+  userId: string;
+  status: 'pending' | 'accepted' | 'blocked' | 'declined';
+  isRequester: boolean;
+  fallbackName?: string;
+}): Promise<void> {
+  const collection = database.get<Friend>('friends');
+  const existing = await collection
+    .query(Q.where('user_id', args.userId))
+    .fetch();
+  const snapshot = await fetchUserSnapshot(args.userId).catch(() => null);
+
+  await database.write(async () => {
+    if (existing.length > 0) {
+      const target = existing[0];
+      await target.update((f) => {
+        f.remoteId = args.remoteId;
+        f.status = args.status;
+        f.isRequester = args.isRequester;
+        if (snapshot) {
+          f.username = snapshot.username;
+          f.displayName = snapshot.display_name;
+          f.avatarUrl = snapshot.avatar_url;
+          f.snapScore = snapshot.snap_score;
+        }
+        f.syncedAt = Date.now();
+      });
+      return;
+    }
+    await collection.create((f) => {
+      f.remoteId = args.remoteId;
+      f.userId = args.userId;
+      f.username = snapshot?.username ?? args.fallbackName ?? '';
+      f.displayName = snapshot?.display_name ?? args.fallbackName ?? '';
+      f.avatarUrl = snapshot?.avatar_url ?? null;
+      f.status = args.status;
+      f.isRequester = args.isRequester;
+      f.snapScore = snapshot?.snap_score ?? 0;
+      f.createdAt = Date.now();
+      f.syncedAt = snapshot ? Date.now() : null;
+    });
+  });
+}
+
+async function deleteLocalFriendByRemoteId(friendshipId: string): Promise<void> {
+  const matches = await database
+    .get<Friend>('friends')
+    .query(Q.where('remote_id', friendshipId))
+    .fetch();
+  if (matches.length === 0) return;
+  await database.write(async () => {
+    for (const m of matches) {
+      await m.destroyPermanently();
+    }
+  });
+}
+
+async function deleteLocalFriendByUserId(userId: string): Promise<void> {
+  const matches = await database
+    .get<Friend>('friends')
+    .query(Q.where('user_id', userId))
+    .fetch();
+  if (matches.length === 0) return;
+  await database.write(async () => {
+    for (const m of matches) {
+      await m.destroyPermanently();
+    }
+  });
+}
 
 export function useFriendRequest() {
   const profile = useAuthStore((s) => s.profile);
 
   async function sendRequest(addresseeId: string): Promise<void> {
     if (!profile) return;
+    const friendshipId = uuid();
 
-    await supabase
-      .from('friendships')
-      .delete()
-      .or(
-        `and(requester_id.eq.${profile.id},addressee_id.eq.${addresseeId}),` +
-          `and(requester_id.eq.${addresseeId},addressee_id.eq.${profile.id})`
-      )
-      .not('status', 'in', '(accepted,pending)');
-
-    const { error } = await supabase.from('friendships').insert({
-      requester_id: profile.id,
-      addressee_id: addresseeId,
+    await upsertLocalFriend({
+      remoteId: friendshipId,
+      userId: addresseeId,
       status: 'pending',
+      isRequester: true,
     });
-    if (error) throw error;
+
+    await enqueueJob({
+      kind: JOB.FRIEND_REQUEST,
+      payload: {
+        requesterId: profile.id,
+        addresseeId,
+        friendshipId,
+      },
+      groupKey: `friend:${addresseeId}`,
+    });
   }
 
   async function acceptRequest(friendshipId: string): Promise<void> {
-    const { data, error } = await supabase
-      .from('friendships')
-      .update({ status: 'accepted' })
-      .eq('id', friendshipId)
-      .select()
-      .single();
-    if (error) throw error;
+    if (!profile) return;
 
-    if (data && profile) {
-      const p1 = [profile.id, data.requester_id].sort()[0];
-      const p2 = [profile.id, data.requester_id].sort()[1];
-      await supabase
-        .from('conversations')
-        .upsert(
-          { participant_1: p1, participant_2: p2 },
-          { onConflict: 'participant_1,participant_2', ignoreDuplicates: true }
-        );
+    const matches = await database
+      .get<Friend>('friends')
+      .query(Q.where('remote_id', friendshipId))
+      .fetch();
+    const otherId = matches[0]?.userId;
+
+    if (matches.length > 0) {
+      await database.write(async () => {
+        await matches[0].update((f) => {
+          f.status = 'accepted';
+        });
+      });
     }
+
+    if (!otherId) return;
+
+    await enqueueJob({
+      kind: JOB.FRIEND_ACCEPT,
+      payload: {
+        friendshipId,
+        myId: profile.id,
+        otherId,
+      },
+      groupKey: `friend:${otherId}`,
+    });
   }
 
   async function declineRequest(friendshipId: string): Promise<void> {
-    await supabase.from('friendships').delete().eq('id', friendshipId);
+    await deleteLocalFriendByRemoteId(friendshipId);
+    await enqueueJob({
+      kind: JOB.FRIEND_DECLINE,
+      payload: { friendshipId },
+      groupKey: `friend-decline:${friendshipId}`,
+    });
   }
 
   async function removeFriend(friendshipId: string): Promise<void> {
-    await supabase.from('friendships').delete().eq('id', friendshipId);
+    await deleteLocalFriendByRemoteId(friendshipId);
+    await enqueueJob({
+      kind: JOB.FRIEND_DECLINE,
+      payload: { friendshipId },
+      groupKey: `friend-remove:${friendshipId}`,
+    });
   }
 
-  /**
-   * Unfriend the other user and clear every shared artefact: messages, snaps,
-   * my uploads in storage, and the Redis streak. Re-friending later starts
-   * from a blank thread.
-   */
   async function unfriendAndPurge(friendshipId: string, otherUserId: string): Promise<void> {
     if (!profile) return;
-    await supabase.from('friendships').delete().eq('id', friendshipId);
-    await purgeRelationshipData(profile.id, otherUserId);
+    await deleteLocalFriendByUserId(otherUserId);
+    await enqueueJob({
+      kind: JOB.FRIEND_REMOVE,
+      payload: {
+        myId: profile.id,
+        otherUserId,
+        friendshipId,
+      },
+      groupKey: `friend:${otherUserId}`,
+    });
   }
 
-  /**
-   * Block is a hard reset: tear down every friendship row between the pair
-   * (in either direction), record the block, and purge all shared history
-   * (messages, snaps, my media, streak, conversation metadata). After this
-   * the users_select RLS hides each side from the other, so the blocked
-   * partner instantly drops out of the blocker's search, conversations,
-   * friends list, and stories — and vice-versa. Re-friending after an
-   * unblock starts from a blank slate.
-   *
-   * We delete by user pair rather than a single friendship id so a stray
-   * second-direction row (rare, but the unique constraint is per-direction)
-   * can't survive the block.
-   */
   async function blockUser(_friendshipId: string | null, blockedId: string): Promise<void> {
     if (!profile) return;
-    await supabase
-      .from('friendships')
-      .delete()
-      .or(
-        `and(requester_id.eq.${profile.id},addressee_id.eq.${blockedId}),` +
-          `and(requester_id.eq.${blockedId},addressee_id.eq.${profile.id})`
-      );
-    await supabase
-      .from('blocks')
-      .upsert(
-        { blocker_id: profile.id, blocked_id: blockedId },
-        { onConflict: 'blocker_id,blocked_id', ignoreDuplicates: true }
-      );
-    await purgeRelationshipData(profile.id, blockedId);
+    void _friendshipId;
+    await deleteLocalFriendByUserId(blockedId);
+    await enqueueJob({
+      kind: JOB.FRIEND_BLOCK,
+      payload: {
+        myId: profile.id,
+        blockedId,
+      },
+      groupKey: `friend:${blockedId}`,
+    });
   }
 
   async function getFriendshipStatus(otherUserId: string): Promise<{
     status: string | null;
     friendshipId: string | null;
-    /** true when *I* am the requester (I sent the friend request to them). */
     iSentRequest: boolean;
   }> {
     if (!profile) return { status: null, friendshipId: null, iSentRequest: false };
+
+    const local = await database
+      .get<Friend>('friends')
+      .query(Q.where('user_id', otherUserId))
+      .fetch();
+    if (local.length > 0) {
+      const f = local[0];
+      return {
+        status: f.status,
+        friendshipId: f.remoteId,
+        iSentRequest: f.isRequester,
+      };
+    }
 
     const { data: outgoing } = await supabase
       .from('friendships')

@@ -12,12 +12,16 @@ export function useFriendRequestCount(): number {
     let cancelled = false;
 
     async function load() {
-      const { count: c } = await supabase
-        .from('friendships')
-        .select('id', { count: 'exact', head: true })
-        .eq('addressee_id', profile!.id)
-        .eq('status', 'pending');
-      if (!cancelled) setCount(c ?? 0);
+      try {
+        const { count: c } = await supabase
+          .from('friendships')
+          .select('id', { count: 'exact', head: true })
+          .eq('addressee_id', profile!.id)
+          .eq('status', 'pending');
+        if (!cancelled) setCount(c ?? 0);
+      } catch {
+        // offline — keep last value
+      }
     }
 
     load();

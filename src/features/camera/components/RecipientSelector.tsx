@@ -7,14 +7,13 @@ import {
   Alert,
   ActivityIndicator,
   Modal,
-  StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { supabase } from '@lib/supabase/client';
 import { useAuthStore } from '@features/auth/store/authStore';
 import { useCameraStore } from '../store/cameraStore';
 import { sendSnapToRecipients } from '../utils/sendSnap';
-import type { DbUser, DbFriendship } from '@/types/database';
+import { useFriends } from '@features/friends/hooks/useFriends';
+import type { DbUser } from '@/types/database';
 import * as Haptics from 'expo-haptics';
 
 interface Props {
@@ -23,52 +22,20 @@ interface Props {
 }
 
 export function RecipientSelector({ imageUri, onClose }: Props) {
-  const [friends, setFriends] = useState<DbUser[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [sendToStory, setSendToStory] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const profile = useAuthStore((s) => s.profile);
   const { reset } = useCameraStore();
-
-  React.useEffect(() => {
-    loadFriends();
-  }, []);
-
-  async function loadFriends() {
-    if (!profile) return;
-    setLoading(true);
-    try {
-      const { data: friendships } = await supabase
-        .from('friendships')
-        .select('requester_id, addressee_id')
-        .eq('status', 'accepted')
-        .or(`requester_id.eq.${profile.id},addressee_id.eq.${profile.id}`);
-
-      if (!friendships) return;
-
-      const friendIds = friendships.map((f: Pick<DbFriendship, 'requester_id' | 'addressee_id'>) =>
-        f.requester_id === profile.id ? f.addressee_id : f.requester_id
-      );
-
-      if (friendIds.length === 0) return;
-
-      const { data: users } = await supabase
-        .from('users')
-        .select('*')
-        .in('id', friendIds);
-
-      setFriends(users ?? []);
-    } finally {
-      setLoading(false);
-    }
-  }
+  const { friends: friendList, loading } = useFriends();
+  const friends: DbUser[] = friendList;
 
   function toggleRecipient(id: string) {
     Haptics.selectionAsync();
     setSelected((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   }

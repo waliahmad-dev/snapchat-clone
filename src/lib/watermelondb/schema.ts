@@ -1,7 +1,7 @@
 import { appSchema, tableSchema } from '@nozbe/watermelondb';
 
 export const schema = appSchema({
-  version: 1,
+  version: 3,
   tables: [
     tableSchema({
       name: 'conversations',
@@ -31,6 +31,7 @@ export const schema = appSchema({
         { name: 'saved', type: 'boolean' },
         { name: 'deleted_at', type: 'number', isOptional: true },
         { name: 'is_optimistic', type: 'boolean' },
+        { name: 'reply_to_message_id', type: 'string', isOptional: true },
       ],
     }),
     tableSchema({
@@ -42,6 +43,7 @@ export const schema = appSchema({
         { name: 'display_name', type: 'string' },
         { name: 'avatar_url', type: 'string', isOptional: true },
         { name: 'status', type: 'string', isIndexed: true },
+        { name: 'is_requester', type: 'boolean' },
         { name: 'snap_score', type: 'number' },
         { name: 'created_at', type: 'number' },
         { name: 'synced_at', type: 'number', isOptional: true },
@@ -58,6 +60,19 @@ export const schema = appSchema({
         { name: 'upload_status', type: 'string' },
         { name: 'local_path', type: 'string', isOptional: true },
         { name: 'deleted_at', type: 'number', isOptional: true },
+      ],
+    }),
+    tableSchema({
+      name: 'outbox',
+      columns: [
+        { name: 'kind', type: 'string', isIndexed: true },
+        { name: 'payload', type: 'string' },
+        { name: 'status', type: 'string', isIndexed: true },
+        { name: 'attempts', type: 'number' },
+        { name: 'last_error', type: 'string', isOptional: true },
+        { name: 'created_at', type: 'number' },
+        { name: 'next_attempt_at', type: 'number' },
+        { name: 'group_key', type: 'string', isIndexed: true, isOptional: true },
       ],
     }),
   ],

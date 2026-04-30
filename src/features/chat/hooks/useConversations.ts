@@ -1,5 +1,10 @@
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
+import { Q } from '@nozbe/watermelondb';
 import { supabase } from '@lib/supabase/client';
+import { database } from '@lib/watermelondb/database';
+import Conversation from '@lib/watermelondb/models/Conversation';
+import Message from '@lib/watermelondb/models/Message';
+import Friend from '@lib/watermelondb/models/Friend';
 import { useAuthStore } from '@features/auth/store/authStore';
 import type { DbConversation, DbUser } from '@/types/database';
 
@@ -13,55 +18,67 @@ export interface ConversationWithPartner extends DbConversation {
   lastActivityAt: string | null;
 }
 
+interface RemoteFriendship {
+  requester_id: string;
+  addressee_id: string;
+  status: string;
+}
+
 export function useConversations() {
   const profile = useAuthStore((s) => s.profile);
   const instanceId = useId();
-  const [conversations, setConversations] = useState<ConversationWithPartner[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [friends, setFriends] = useState<Friend[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const subs = [
+      database
+        .get<Conversation>('conversations')
+        .query()
+        .observe()
+        .subscribe((rows) => setConversations(rows)),
+      database
+        .get<Message>('messages')
+        .query(Q.where('deleted_at', null))
+        .observe()
+        .subscribe((rows) => setMessages(rows)),
+      database
+        .get<Friend>('friends')
+        .query(Q.where('status', 'accepted'))
+        .observe()
+        .subscribe((rows) => setFriends(rows)),
+    ];
+    return () => subs.forEach((s) => s.unsubscribe());
+  }, []);
+
+  useEffect(() => {
     if (!profile) return;
-    loadConversations();
+    syncFromServer().finally(() => setLoading(false));
 
     const convChannel = supabase
       .channel(`conversations:${profile.id}:${instanceId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' }, () =>
-        loadConversations()
+        syncFromServer(),
       )
       .subscribe();
 
     const msgChannel = supabase
       .channel(`messages-for-convs:${profile.id}:${instanceId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () =>
-        loadConversations()
-      )
-      .subscribe();
-
-    const userChannel = supabase
-      .channel(`users-for-convs:${profile.id}:${instanceId}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'users' }, () =>
-        loadConversations()
-      )
-      .subscribe();
-
-    const friendChannel = supabase
-      .channel(`friendships-for-convs:${profile.id}:${instanceId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships' }, () =>
-        loadConversations()
+        syncFromServer(),
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(convChannel);
       supabase.removeChannel(msgChannel);
-      supabase.removeChannel(userChannel);
-      supabase.removeChannel(friendChannel);
     };
   }, [profile?.id, instanceId]);
 
-  async function loadConversations() {
+  async function syncFromServer() {
     if (!profile) return;
-    setLoading(true);
     try {
       const { data: convs } = await supabase
         .from('conversations')
@@ -69,113 +86,174 @@ export function useConversations() {
         .or(`participant_1.eq.${profile.id},participant_2.eq.${profile.id}`)
         .order('updated_at', { ascending: false });
 
-      if (!convs || convs.length === 0) {
-        setConversations([]);
-        return;
-      }
+      if (!convs) return;
 
-      const convIds = convs.map((c: DbConversation) => c.id);
-      const partnerIds = convs.map((c: DbConversation) =>
-        c.participant_1 === profile.id ? c.participant_2 : c.participant_1
-      );
+      const collection = database.get<Conversation>('conversations');
+      const existing = await collection.query().fetch();
+      const byRemoteId = new Map(existing.map((c) => [c.remoteId, c]));
+      const seen = new Set<string>();
 
-      const [{ data: partners }, { data: messages }, { data: friendRows }] = await Promise.all([
-        supabase.from('users').select('*').in('id', partnerIds),
-        supabase
+      // Pull last message text per conversation in one batch
+      const convIds = (convs as DbConversation[]).map((c) => c.id);
+      let lastMessageByConv = new Map<string, { content: string | null; created_at: string; type: string }>();
+      if (convIds.length > 0) {
+        const { data: lastMessages } = await supabase
           .from('messages')
-          .select('id, conversation_id, sender_id, viewed_at, created_at, type, deleted_at')
+          .select('conversation_id, content, created_at, type')
           .in('conversation_id', convIds)
           .is('deleted_at', null)
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('friendships')
-          .select('requester_id, addressee_id, status')
-          .eq('status', 'accepted')
-          .or(`requester_id.eq.${profile.id},addressee_id.eq.${profile.id}`),
-      ]);
-
-      const acceptedPartnerIds = new Set<string>();
-      for (const f of friendRows ?? []) {
-        acceptedPartnerIds.add(f.requester_id === profile.id ? f.addressee_id : f.requester_id);
-      }
-
-      const partnerMap = new Map((partners ?? []).map((u: DbUser) => [u.id, u]));
-
-      type MsgSummary = {
-        last?: { sender_id: string; viewed_at: string | null; created_at: string };
-        hasMySent: boolean;
-        unreadCount: number;
-        unviewedSnapIds: string[];
-      };
-      const summary = new Map<string, MsgSummary>();
-      for (const msg of messages ?? []) {
-        const entry = summary.get(msg.conversation_id) ?? {
-          hasMySent: false,
-          unreadCount: 0,
-          unviewedSnapIds: [],
-        };
-        if (!entry.last) {
-          entry.last = {
-            sender_id: msg.sender_id,
-            viewed_at: msg.viewed_at,
-            created_at: msg.created_at,
+          .order('created_at', { ascending: false });
+        if (lastMessages) {
+          type LastMessageRow = {
+            conversation_id: string;
+            content: string | null;
+            created_at: string;
+            type: string;
           };
-        }
-        if (msg.sender_id === profile.id) {
-          entry.hasMySent = true;
-        } else if (!msg.viewed_at && msg.type !== 'system') {
-          entry.unreadCount += 1;
-          if (msg.type === 'snap') {
-            entry.unviewedSnapIds.unshift(msg.id);
-          }
-        }
-        summary.set(msg.conversation_id, entry);
-      }
-
-      const enriched: ConversationWithPartner[] = convs
-        .map((c: DbConversation) => {
-          const partnerId = c.participant_1 === profile.id ? c.participant_2 : c.participant_1;
-          const partner = partnerMap.get(partnerId);
-          if (!partner) return null;
-          if (!acceptedPartnerIds.has(partnerId)) return null;
-
-          const s = summary.get(c.id);
-          const last = s?.last;
-          const hasMySent = s?.hasMySent ?? false;
-
-          let status: ConversationStatus = 'empty';
-          if (last) {
-            if (last.sender_id === profile.id) {
-              status = last.viewed_at ? 'opened' : 'sent';
-            } else {
-              status = hasMySent ? 'replied' : 'received';
+          for (const m of lastMessages as LastMessageRow[]) {
+            if (!lastMessageByConv.has(m.conversation_id)) {
+              lastMessageByConv.set(m.conversation_id, m);
             }
           }
+        }
+      }
 
-          return {
-            ...c,
-            partner,
-            unread_count: s?.unreadCount ?? 0,
-            unviewed_snap_ids: s?.unviewedSnapIds ?? [],
-            status,
-            lastActivityAt: last?.created_at ?? null,
-          } as ConversationWithPartner;
-        })
-        .filter(Boolean) as ConversationWithPartner[];
+      await database.write(async () => {
+        for (const c of convs as DbConversation[]) {
+          seen.add(c.id);
+          const last = lastMessageByConv.get(c.id);
+          const lastText =
+            last?.type === 'snap' ? '📸 Snap' : last?.content ?? null;
+          const lastAt = last ? new Date(last.created_at).getTime() : null;
 
-      enriched.sort((a, b) => {
-        const ta = a.lastActivityAt ? Date.parse(a.lastActivityAt) : Date.parse(a.updated_at);
-        const tb = b.lastActivityAt ? Date.parse(b.lastActivityAt) : Date.parse(b.updated_at);
-        return tb - ta;
+          const existingRow = byRemoteId.get(c.id);
+          if (existingRow) {
+            await existingRow.update((row) => {
+              row.participant1Id = c.participant_1;
+              row.participant2Id = c.participant_2;
+              row.streakCount = c.streak_count;
+              row.updatedAt = new Date(c.updated_at).getTime();
+              row.lastMessageText = lastText;
+              row.lastMessageAt = lastAt;
+              row.syncedAt = Date.now();
+            });
+          } else {
+            await collection.create((row) => {
+              row.remoteId = c.id;
+              row.participant1Id = c.participant_1;
+              row.participant2Id = c.participant_2;
+              row.streakCount = c.streak_count;
+              row.unreadCount = 0;
+              row.lastMessageText = lastText;
+              row.lastMessageAt = lastAt;
+              row.updatedAt = new Date(c.updated_at).getTime();
+              row.syncedAt = Date.now();
+            });
+          }
+        }
+
+        for (const [remoteId, row] of byRemoteId) {
+          if (!seen.has(remoteId)) {
+            await row.destroyPermanently();
+          }
+        }
       });
 
-      setConversations(enriched);
-    } finally {
-      setLoading(false);
+      // Friendship reconcile (same as old hook for the partner/blocked logic)
+      const { data: friendRows } = await supabase
+        .from('friendships')
+        .select('requester_id, addressee_id, status')
+        .eq('status', 'accepted')
+        .or(`requester_id.eq.${profile.id},addressee_id.eq.${profile.id}`);
+      void (friendRows as RemoteFriendship[] | null);
+    } catch (err) {
+      console.warn('[Conversations] sync failed:', err);
     }
   }
 
-  const totalUnread = conversations.reduce((acc, c) => acc + (c.unread_count ?? 0), 0);
+  const enriched = useMemo<ConversationWithPartner[]>(() => {
+    if (!profile) return [];
+    const friendsByUserId = new Map(friends.map((f) => [f.userId, f]));
+    const messagesByConv = new Map<string, Message[]>();
+    for (const m of messages) {
+      const list = messagesByConv.get(m.conversationId) ?? [];
+      list.push(m);
+      messagesByConv.set(m.conversationId, list);
+    }
 
-  return { conversations, loading, totalUnread, refresh: loadConversations };
+    const result: ConversationWithPartner[] = [];
+    for (const conv of conversations) {
+      const partnerId =
+        conv.participant1Id === profile.id ? conv.participant2Id : conv.participant1Id;
+      const friend = friendsByUserId.get(partnerId);
+      if (!friend) continue;
+
+      const convMessages = (messagesByConv.get(conv.remoteId) ?? [])
+        .slice()
+        .sort((a, b) => b.createdAt - a.createdAt);
+      const last = convMessages[0];
+      const hasMySent = convMessages.some((m) => m.senderId === profile.id);
+
+      let unreadCount = 0;
+      const unviewedSnapIds: string[] = [];
+      for (const m of convMessages) {
+        if (m.senderId === profile.id) continue;
+        if (m.type === 'system') continue;
+        if (m.viewedAt) continue;
+        unreadCount += 1;
+        if (m.type === 'snap' && m.remoteId) unviewedSnapIds.unshift(m.remoteId);
+      }
+
+      let status: ConversationStatus = 'empty';
+      if (last) {
+        if (last.senderId === profile.id) {
+          status = last.viewedAt ? 'opened' : 'sent';
+        } else {
+          status = hasMySent ? 'replied' : 'received';
+        }
+      }
+
+      const partner: DbUser = {
+        id: friend.userId,
+        username: friend.username,
+        display_name: friend.displayName,
+        avatar_url: friend.avatarUrl,
+        snap_score: friend.snapScore,
+        date_of_birth: null,
+        phone: null,
+        created_at: new Date(friend.createdAt).toISOString(),
+      };
+
+      result.push({
+        id: conv.remoteId,
+        participant_1: conv.participant1Id,
+        participant_2: conv.participant2Id,
+        last_message_id: null,
+        streak_count: conv.streakCount,
+        updated_at: new Date(conv.updatedAt).toISOString(),
+        partner,
+        unread_count: unreadCount,
+        unviewed_snap_ids: unviewedSnapIds,
+        status,
+        lastActivityAt: last ? new Date(last.createdAt).toISOString() : null,
+      });
+    }
+
+    result.sort((a, b) => {
+      const ta = a.lastActivityAt ? Date.parse(a.lastActivityAt) : Date.parse(a.updated_at);
+      const tb = b.lastActivityAt ? Date.parse(b.lastActivityAt) : Date.parse(b.updated_at);
+      return tb - ta;
+    });
+
+    return result;
+  }, [conversations, messages, friends, profile]);
+
+  const totalUnread = enriched.reduce((acc, c) => acc + (c.unread_count ?? 0), 0);
+
+  return {
+    conversations: enriched,
+    loading,
+    totalUnread,
+    refresh: syncFromServer,
+  };
 }

@@ -11,6 +11,7 @@ export default class Friend extends Model {
   @text('display_name') displayName!: string;
   @text('avatar_url') avatarUrl!: string | null;
   @text('status') status!: FriendshipStatus;
+  @field('is_requester') isRequester!: boolean;
   @field('snap_score') snapScore!: number;
   @field('created_at') createdAt!: number;
   @field('synced_at') syncedAt!: number | null;

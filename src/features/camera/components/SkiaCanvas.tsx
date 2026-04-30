@@ -1,14 +1,8 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
-import {
-  Canvas,
-  Path,
-  Skia,
-  type SkPath,
-} from '@shopify/react-native-skia';
+import { Canvas, Path, type SkPath } from '@shopify/react-native-skia';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useCameraStore } from '../store/cameraStore';
-import { useDrawing } from '../hooks/useDrawing';
 
 interface CompletedPath {
   path: SkPath;
