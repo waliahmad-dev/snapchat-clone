@@ -7,6 +7,10 @@ import Message from './models/Message';
 import Friend from './models/Friend';
 import Memory from './models/Memory';
 import Outbox from './models/Outbox';
+import GroupChat from './models/GroupChat';
+import GroupMember from './models/GroupMember';
+import GroupMessage from './models/GroupMessage';
+import GroupMessageView from './models/GroupMessageView';
 
 const nativeAvailable = !!NativeModules.WMDatabaseBridge;
 
@@ -34,5 +38,15 @@ if (nativeAvailable) {
 
 export const database = new Database({
   adapter,
-  modelClasses: [Conversation, Message, Friend, Memory, Outbox],
+  modelClasses: [
+    Conversation,
+    Message,
+    Friend,
+    Memory,
+    Outbox,
+    GroupChat,
+    GroupMember,
+    GroupMessage,
+    GroupMessageView,
+  ],
 });

@@ -123,7 +123,7 @@ export default function SettingsScreen() {
           />
         </Section>
 
-        <Section title="" colors={c}>
+        <Section title="Logout" colors={c}>
           <Row icon="log-out-outline" label="Log Out" onPress={handleSignOut} colors={c} danger />
         </Section>
       </ScrollView>

@@ -92,10 +92,17 @@ async function runJob(job: Outbox): Promise<void> {
       await job.destroyPermanently();
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
+    const message = describeError(err);
     const isNetwork =
       /network request failed|fetch|timeout|getaddrinfo|ECONN|ENOTFOUND|abort/i.test(message) ||
       !isOnlineSync();
+    if (!isNetwork) {
+      console.error(
+        `[Outbox] ${job.kind} failed (attempts=${job.attempts}):`,
+        message,
+        err
+      );
+    }
     await database.write(async () => {
       await job.update((row) => {
         row.status = 'pending';
@@ -108,6 +115,33 @@ async function runJob(job: Outbox): Promise<void> {
     });
     if (isNetwork) throw err;
   }
+}
+
+/**
+ * Supabase errors are plain objects with `message`, `code`, `details`, `hint`.
+ * Plain `String(err)` collapses to `[object Object]`, which hides the cause.
+ */
+function describeError(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'string') return err;
+  if (err && typeof err === 'object') {
+    const e = err as {
+      message?: string;
+      code?: string;
+      details?: string;
+      hint?: string;
+    };
+    const parts = [e.message, e.code && `code=${e.code}`, e.details, e.hint].filter(
+      Boolean
+    );
+    if (parts.length > 0) return parts.join(' | ');
+    try {
+      return JSON.stringify(err);
+    } catch {
+      return '[unserializable error]';
+    }
+  }
+  return String(err);
 }
 
 export async function drainOutbox(): Promise<void> {

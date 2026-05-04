@@ -1,19 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import {
-  Modal,
-  View,
-  Image,
-  Pressable,
-  StyleSheet,
-  Text,
-  Alert,
-} from 'react-native';
+import { Modal, View, Image, Pressable, StyleSheet, Text, Alert } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { getSignedUrl } from '@lib/supabase/storage';
@@ -66,7 +54,9 @@ export function SnapViewer({
         if (!cancelled) setLoadError(true);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [preloadedUrl, mediaPath]);
 
   useEffect(() => {
@@ -93,22 +83,18 @@ export function SnapViewer({
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     if (saved) {
-      Alert.alert(
-        'Unsave?',
-        "If you unsave, it'll be removed from the chat.",
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Unsave',
-            style: 'destructive',
-            onPress: () => {
-              setSaved(false);
-              onUnsave();
-              close();
-            },
+      Alert.alert('Unsave?', "If you unsave, it'll be removed from the chat.", [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Unsave',
+          style: 'destructive',
+          onPress: () => {
+            setSaved(false);
+            onUnsave();
+            close();
           },
-        ],
-      );
+        },
+      ]);
     } else {
       Alert.alert('Save this snap?', 'Both of you will see that it was saved.', [
         { text: 'Cancel', style: 'cancel' },
@@ -128,62 +114,52 @@ export function SnapViewer({
   return (
     <Modal visible animationType="fade" statusBarTranslucent presentationStyle="fullScreen">
       <SafeAreaProvider>
-      <Pressable
-        onPress={close}
-        onLongPress={handleLongPress}
-        delayLongPress={350}
-        style={styles.root}>
-        {url && !loadError && (
-          <Image
-            source={{ uri: url }}
-            style={[StyleSheet.absoluteFill, { opacity: imageReady ? 1 : 0 }]}
-            resizeMode="contain"
-            onLoad={() => setImageReady(true)}
-            onError={() => setLoadError(true)}
-          />
-        )}
+        <Pressable
+          onPress={close}
+          onLongPress={handleLongPress}
+          delayLongPress={350}
+          style={styles.root}>
+          {url && !loadError && (
+            <Image
+              source={{ uri: url }}
+              style={[StyleSheet.absoluteFill, { opacity: imageReady ? 1 : 0 }]}
+              resizeMode="contain"
+              onLoad={() => setImageReady(true)}
+              onError={() => setLoadError(true)}
+            />
+          )}
 
-        {showLoader && <PulsingLoader label="Loading snap…" />}
+          {showLoader && <PulsingLoader label="Loading snap…" />}
 
-        {loadError && (
-          <View style={styles.centered}>
-            <Ionicons name="alert-circle-outline" size={48} color="#fff" />
-            <Text className="text-white mt-2">Snap couldn't load</Text>
-          </View>
-        )}
+          {loadError && (
+            <View style={styles.centered}>
+              <Ionicons name="alert-circle-outline" size={48} color="#fff" />
+              <Text className="mt-2 text-white">Snap couldn't load</Text>
+            </View>
+          )}
 
-        <SafeAreaView edges={['top']} pointerEvents="box-none">
-          <View style={styles.progressTrack}>
-            <Animated.View style={[styles.progressFill, progressStyle]} />
-          </View>
+          <SafeAreaView edges={['top']} pointerEvents="box-none">
+            <View style={styles.progressTrack}>
+              <Animated.View style={[styles.progressFill, progressStyle]} />
+            </View>
 
-          <View style={styles.topRow} pointerEvents="box-none">
-            <Pressable
-              onPress={close}
-              hitSlop={12}
-              className="w-10 h-10 rounded-full bg-black/50 items-center justify-center">
-              <Ionicons name="close" size={22} color="#fff" />
-            </Pressable>
+            <View style={styles.topRow} pointerEvents="box-none">
+              <Pressable
+                onPress={close}
+                hitSlop={12}
+                className="h-10 w-10 items-center justify-center rounded-full bg-black/50">
+                <Ionicons name="close" size={22} color="#fff" />
+              </Pressable>
 
-            {saved && (
-              <View className="flex-row items-center bg-black/60 rounded-full px-3 py-1 gap-1">
-                <Ionicons name="bookmark" size={14} color="#FFFC00" />
-                <Text className="text-snap-yellow font-bold text-xs">SAVED</Text>
-              </View>
-            )}
-          </View>
-        </SafeAreaView>
-
-        <SafeAreaView edges={['bottom']} style={styles.bottomHint} pointerEvents="none">
-          <Text className="text-white/70 text-xs">
-            {isOwn
-              ? 'Your snap'
-              : saved
-                ? 'Long-press to unsave'
-                : 'Long-press to save · Tap to close'}
-          </Text>
-        </SafeAreaView>
-      </Pressable>
+              {saved && (
+                <View className="flex-row items-center gap-1 rounded-full bg-black/60 px-3 py-1">
+                  <Ionicons name="bookmark" size={14} color="#FFFC00" />
+                  <Text className="text-xs font-bold text-snap-yellow">SAVED</Text>
+                </View>
+              )}
+            </View>
+          </SafeAreaView>
+        </Pressable>
       </SafeAreaProvider>
     </Modal>
   );

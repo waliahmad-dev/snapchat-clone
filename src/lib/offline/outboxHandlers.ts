@@ -7,6 +7,10 @@ import { database } from '@lib/watermelondb/database';
 import Memory from '@lib/watermelondb/models/Memory';
 import Message from '@lib/watermelondb/models/Message';
 import Friend from '@lib/watermelondb/models/Friend';
+import GroupChat from '@lib/watermelondb/models/GroupChat';
+import GroupMember from '@lib/watermelondb/models/GroupMember';
+import GroupMessage from '@lib/watermelondb/models/GroupMessage';
+import GroupMessageView from '@lib/watermelondb/models/GroupMessageView';
 import { ensureConversation } from '@features/chat/utils/conversation';
 import { purgeRelationshipData } from '@features/friends/utils/purgeRelationship';
 import { deletePersistedMedia, persistedMediaExists } from './persistMedia';
@@ -26,6 +30,17 @@ import {
   type FriendRemoveJob,
   type FriendBlockJob,
   type StoryViewJob,
+  type GroupCreateJob,
+  type GroupUpdateJob,
+  type GroupMessageSendJob,
+  type GroupMessageViewJob,
+  type GroupMessageSaveJob,
+  type GroupMessageDeleteJob,
+  type GroupSystemMessageJob,
+  type GroupMemberAddJob,
+  type GroupMemberLeaveJob,
+  type GroupNotificationsSetJob,
+  type GroupScreenshotJob,
 } from './jobs';
 
 let initialized = false;
@@ -49,6 +64,17 @@ export function initOfflineHandlers(): void {
   registerHandler(JOB.FRIEND_REMOVE, friendRemove as never);
   registerHandler(JOB.FRIEND_BLOCK, friendBlock as never);
   registerHandler(JOB.STORY_VIEW, storyView as never);
+  registerHandler(JOB.GROUP_CREATE, groupCreate as never);
+  registerHandler(JOB.GROUP_UPDATE, groupUpdate as never);
+  registerHandler(JOB.GROUP_MESSAGE_SEND, groupMessageSend as never);
+  registerHandler(JOB.GROUP_MESSAGE_VIEW, groupMessageView as never);
+  registerHandler(JOB.GROUP_MESSAGE_SAVE, groupMessageSave as never);
+  registerHandler(JOB.GROUP_MESSAGE_DELETE, groupMessageDelete as never);
+  registerHandler(JOB.GROUP_SYSTEM_MESSAGE, groupSystemMessage as never);
+  registerHandler(JOB.GROUP_MEMBER_ADD, groupMemberAdd as never);
+  registerHandler(JOB.GROUP_MEMBER_LEAVE, groupMemberLeave as never);
+  registerHandler(JOB.GROUP_NOTIFICATIONS_SET, groupNotificationsSet as never);
+  registerHandler(JOB.GROUP_SCREENSHOT, groupScreenshot as never);
 }
 
 async function memoryUpload(p: MemoryUploadJob): Promise<void> {
@@ -207,6 +233,33 @@ async function snapSend(p: SnapSendJob): Promise<void> {
       },
       { onConflict: 'id', ignoreDuplicates: true }
     );
+  }
+
+  if (p.groupIds && p.groupIds.length > 0 && p.groupMessageIds) {
+    for (const gid of p.groupIds) {
+      const messageId = p.groupMessageIds[gid];
+      if (!messageId) continue;
+
+      const { error: gmErr } = await supabase.from('group_messages').upsert(
+        {
+          id: messageId,
+          group_id: gid,
+          sender_id: p.senderId,
+          media_url: p.fullPath,
+          type: 'media',
+        },
+        { onConflict: 'id', ignoreDuplicates: true }
+      );
+      if (gmErr) throw gmErr;
+
+      await supabase
+        .from('group_chats')
+        .update({
+          last_message_text: '📷 Snap',
+          last_message_at: new Date().toISOString(),
+        })
+        .eq('id', gid);
+    }
   }
 
   await deletePersistedMedia(p.imageUri);
@@ -380,4 +433,209 @@ async function storyView(p: StoryViewJob): Promise<void> {
     { onConflict: 'story_id,viewer_id', ignoreDuplicates: true }
   );
   if (error) throw error;
+}
+
+async function groupCreate(p: GroupCreateJob): Promise<void> {
+  const { error: gErr } = await supabase.from('group_chats').upsert(
+    {
+      id: p.groupId,
+      name: p.name,
+      created_by: p.createdBy,
+    },
+    { onConflict: 'id', ignoreDuplicates: true }
+  );
+  if (gErr) throw gErr;
+
+  const { error: meErr } = await supabase.from('group_members').upsert(
+    {
+      id: p.createdByMembershipId,
+      group_id: p.groupId,
+      user_id: p.createdBy,
+    },
+    { onConflict: 'group_id,user_id', ignoreDuplicates: true }
+  );
+  if (meErr) throw meErr;
+
+  if (p.memberIds.length > 0) {
+    const otherRows = p.memberIds.map((uid) => ({
+      id: p.memberMembershipIds[uid],
+      group_id: p.groupId,
+      user_id: uid,
+    }));
+    const { error: othersErr } = await supabase
+      .from('group_members')
+      .upsert(otherRows, { onConflict: 'group_id,user_id', ignoreDuplicates: true });
+    if (othersErr) throw othersErr;
+  }
+}
+
+async function groupUpdate(p: GroupUpdateJob): Promise<void> {
+  const updates: Record<string, unknown> = {};
+  if (p.name !== undefined) updates.name = p.name;
+  if (p.avatarUrl !== undefined) updates.avatar_url = p.avatarUrl;
+  if (Object.keys(updates).length === 0) return;
+  const { error } = await supabase.from('group_chats').update(updates).eq('id', p.groupId);
+  if (error) throw error;
+}
+
+async function groupMessageSend(p: GroupMessageSendJob): Promise<void> {
+  const local = await database
+    .get<GroupMessage>('group_messages')
+    .find(p.messageId)
+    .catch(() => null);
+  if (local && local.remoteId && !local.isOptimistic) return;
+
+  const payload: Record<string, unknown> = {
+    id: p.messageId,
+    group_id: p.groupId,
+    sender_id: p.senderId,
+    content: p.content,
+    media_url: p.mediaUrl,
+    type: p.type,
+    mentions: p.mentions,
+  };
+  if (p.replyToMessageId) payload.reply_to_message_id = p.replyToMessageId;
+
+  const { error } = await supabase
+    .from('group_messages')
+    .upsert(payload, { onConflict: 'id', ignoreDuplicates: true });
+  if (error) throw error;
+
+  const preview = p.type === 'media' ? '📷 Snap' : (p.content ?? '').slice(0, 80);
+  await supabase
+    .from('group_chats')
+    .update({
+      last_message_text: preview,
+      last_message_at: new Date().toISOString(),
+    })
+    .eq('id', p.groupId);
+
+  if (local) {
+    await database.write(async () => {
+      await local.update((m) => {
+        m.remoteId = p.messageId;
+        m.isOptimistic = false;
+      });
+    });
+  }
+}
+
+async function groupMessageView(p: GroupMessageViewJob): Promise<void> {
+  const { error } = await supabase.from('group_message_views').upsert(
+    {
+      message_id: p.messageId,
+      user_id: p.userId,
+    },
+    { onConflict: 'message_id,user_id', ignoreDuplicates: true }
+  );
+  if (error) throw error;
+}
+
+async function groupMessageSave(p: GroupMessageSaveJob): Promise<void> {
+  const { error } = await supabase.rpc('toggle_group_message_save', {
+    _message: p.messageId,
+    _save: p.save,
+  });
+  if (error) throw error;
+}
+
+async function groupMessageDelete(p: GroupMessageDeleteJob): Promise<void> {
+  const { error } = await supabase
+    .from('group_messages')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', p.messageId);
+  if (error) throw error;
+}
+
+async function groupSystemMessage(p: GroupSystemMessageJob): Promise<void> {
+  const { error } = await supabase.from('group_messages').upsert(
+    {
+      id: p.messageId,
+      group_id: p.groupId,
+      sender_id: p.senderId,
+      content: p.content,
+      type: 'system',
+    },
+    { onConflict: 'id', ignoreDuplicates: true }
+  );
+  if (error) throw error;
+}
+
+async function groupMemberAdd(p: GroupMemberAddJob): Promise<void> {
+  // The RPC handles both "fresh insert" and "user previously left, clear
+  // their left_at" cases atomically. Direct upsert can't because the UNIQUE
+  // (group_id, user_id) constraint silently skips with ignoreDuplicates,
+  // and a plain UPDATE is denied by RLS for the calling user.
+  const { error } = await supabase.rpc('rejoin_group_member', {
+    _group: p.groupId,
+    _user: p.userId,
+  });
+  if (error) throw error;
+}
+
+async function groupMemberLeave(p: GroupMemberLeaveJob): Promise<void> {
+  const { error } = await supabase
+    .from('group_members')
+    .update({ left_at: new Date().toISOString() })
+    .eq('id', p.membershipId);
+  if (error) throw error;
+
+  // Local: drop the group, my membership, every cached message for this
+  // group, and the message-view rows. If I'm ever re-added, syncFromServer
+  // will pull back only the messages newer than my new joined_at.
+  const localMembers = await database
+    .get<GroupMember>('group_members')
+    .query(Q.where('group_id', p.groupId), Q.where('user_id', p.userId))
+    .fetch();
+  const localGroups = await database
+    .get<GroupChat>('group_chats')
+    .query(Q.where('remote_id', p.groupId))
+    .fetch();
+  const localMessages = await database
+    .get<GroupMessage>('group_messages')
+    .query(Q.where('group_id', p.groupId))
+    .fetch();
+  const messageIds = new Set(localMessages.map((m) => m.remoteId));
+  const localViews =
+    messageIds.size > 0
+      ? await database
+          .get<GroupMessageView>('group_message_views')
+          .query(Q.where('message_id', Q.oneOf([...messageIds])))
+          .fetch()
+      : [];
+
+  if (
+    localMembers.length === 0 &&
+    localGroups.length === 0 &&
+    localMessages.length === 0 &&
+    localViews.length === 0
+  ) {
+    return;
+  }
+  await database.write(async () => {
+    for (const m of localMembers) await m.destroyPermanently();
+    for (const g of localGroups) await g.destroyPermanently();
+    for (const m of localMessages) await m.destroyPermanently();
+    for (const v of localViews) await v.destroyPermanently();
+  });
+}
+
+async function groupNotificationsSet(p: GroupNotificationsSetJob): Promise<void> {
+  const { error } = await supabase
+    .from('group_members')
+    .update({ notifications: p.setting })
+    .eq('id', p.membershipId);
+  if (error) throw error;
+}
+
+async function groupScreenshot(p: GroupScreenshotJob): Promise<void> {
+  const { error: viewErr } = await supabase.from('group_message_views').upsert(
+    {
+      message_id: p.messageId,
+      user_id: p.userId,
+      screenshot_at: new Date().toISOString(),
+    },
+    { onConflict: 'message_id,user_id', ignoreDuplicates: false }
+  );
+  if (viewErr) throw viewErr;
 }

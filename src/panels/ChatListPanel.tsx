@@ -7,11 +7,14 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useConversations } from '@features/chat/hooks/useConversations';
 import { ConversationRow } from '@features/chat/components/ConversationRow';
 import { useFriends, type FriendWithStatus } from '@features/friends/hooks/useFriends';
+import { useGroupChats, type GroupChatSummary } from '@features/groups/hooks/useGroupChats';
+import { GroupConversationRow } from '@features/groups/components/GroupConversationRow';
 import { TopBar } from '@components/ui/TopBar';
 import { BOTTOM_NAV_HEIGHT } from '@components/ui/BottomNav';
 import { BreathingLoader } from '@components/ui/BreathingLoader';
@@ -19,23 +22,47 @@ import { Avatar } from '@components/ui/Avatar';
 import { openChatWith } from '@features/chat/utils/openChat';
 import { useAuthStore } from '@features/auth/store/authStore';
 import { useThemeColors } from '@lib/theme/useThemeColors';
+import type { ConversationWithPartner } from '@features/chat/hooks/useConversations';
+
+type FeedItem =
+  | { kind: 'conversation'; sortKey: number; data: ConversationWithPartner }
+  | { kind: 'group'; sortKey: number; data: GroupChatSummary };
 
 export function ChatListPanel() {
+  const router = useRouter();
   const c = useThemeColors();
-  const { conversations, loading, refresh: refreshConvs } = useConversations();
+  const { conversations, loading: convsLoading, refresh: refreshConvs } = useConversations();
+  const { groups, loading: groupsLoading, refresh: refreshGroups } = useGroupChats();
   const { friends, refresh: refreshFriends } = useFriends();
   const profile = useAuthStore((s) => s.profile);
 
+  const loading = convsLoading || groupsLoading;
   const [refreshing, setRefreshing] = useState(false);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await Promise.all([refreshConvs(), refreshFriends()]);
+      await Promise.all([refreshConvs(), refreshGroups(), refreshFriends()]);
     } finally {
       setRefreshing(false);
     }
-  }, [refreshConvs, refreshFriends]);
+  }, [refreshConvs, refreshGroups, refreshFriends]);
+
+  const feed = useMemo<FeedItem[]>(() => {
+    const items: FeedItem[] = [];
+    for (const cv of conversations) {
+      const t = cv.lastActivityAt
+        ? Date.parse(cv.lastActivityAt)
+        : Date.parse(cv.updated_at);
+      items.push({ kind: 'conversation', sortKey: t, data: cv });
+    }
+    for (const g of groups) {
+      const t = g.lastMessageAt ? Date.parse(g.lastMessageAt) : 0;
+      items.push({ kind: 'group', sortKey: t, data: g });
+    }
+    items.sort((a, b) => b.sortKey - a.sortKey);
+    return items;
+  }, [conversations, groups]);
 
   const { freshFriends } = useMemo(() => {
     const convUserIds = new Set<string>(conversations.map((cv) => cv.partner.id));
@@ -43,7 +70,7 @@ export function ChatListPanel() {
   }, [friends, conversations]);
 
   const showEmptyState =
-    !loading && conversations.length === 0 && freshFriends.length === 0;
+    !loading && feed.length === 0 && freshFriends.length === 0;
 
   return (
     <View className="flex-1" style={{ backgroundColor: c.bg }}>
@@ -52,7 +79,7 @@ export function ChatListPanel() {
       </SafeAreaView>
       <BreathingLoader active={loading || refreshing} />
 
-      {loading && conversations.length === 0 ? (
+      {loading && feed.length === 0 ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator color={c.accent} />
         </View>
@@ -63,16 +90,19 @@ export function ChatListPanel() {
             No chats yet
           </Text>
           <Text className="text-sm text-center" style={{ color: c.textSecondary }}>
-            Add friends from your profile to start snapping.
+            Add friends from your profile to start snapping, or tap “+” to start a group.
           </Text>
         </View>
       ) : (
         <FlatList
-          data={[]}
-          keyExtractor={() => ''}
-          renderItem={() => null}
+          data={feed}
+          keyExtractor={(item) =>
+            item.kind === 'conversation'
+              ? `c:${item.data.id}`
+              : `g:${item.data.id}`
+          }
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: BOTTOM_NAV_HEIGHT }}
+          contentContainerStyle={{ paddingBottom: BOTTOM_NAV_HEIGHT + 80 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -84,38 +114,60 @@ export function ChatListPanel() {
           ItemSeparatorComponent={() => (
             <View className="h-px ml-20" style={{ backgroundColor: c.divider }} />
           )}
-          ListHeaderComponent={
-            <View>
-              {conversations.map((cv) => (
-                <ConversationRow key={cv.id} conversation={cv} />
-              ))}
-
-              {freshFriends.length > 0 && (
-                <View>
-                  {conversations.length > 0 && (
-                    <View
-                      className="px-4 pt-5 pb-2"
-                      style={{ backgroundColor: c.bg }}>
-                      <Text
-                        className="text-xs font-semibold uppercase tracking-widest"
-                        style={{ color: c.textSecondary }}>
-                        New Friends · {freshFriends.length}
-                      </Text>
-                    </View>
-                  )}
-                  {freshFriends.map((f) => (
-                    <NewFriendRow
-                      key={f.id}
-                      friend={f}
-                      onOpen={() => profile && openChatWith(profile.id, f)}
-                    />
-                  ))}
-                </View>
-              )}
-            </View>
+          renderItem={({ item }) =>
+            item.kind === 'conversation' ? (
+              <ConversationRow conversation={item.data} />
+            ) : (
+              <GroupConversationRow group={item.data} />
+            )
+          }
+          ListFooterComponent={
+            freshFriends.length > 0 ? (
+              <View>
+                {feed.length > 0 && (
+                  <View className="px-4 pt-5 pb-2" style={{ backgroundColor: c.bg }}>
+                    <Text
+                      className="text-xs font-semibold uppercase tracking-widest"
+                      style={{ color: c.textSecondary }}>
+                      New Friends · {freshFriends.length}
+                    </Text>
+                  </View>
+                )}
+                {freshFriends.map((f) => (
+                  <NewFriendRow
+                    key={f.id}
+                    friend={f}
+                    onOpen={() => profile && openChatWith(profile.id, f)}
+                  />
+                ))}
+              </View>
+            ) : null
           }
         />
       )}
+
+      {/* New Chat FAB */}
+      <Pressable
+        onPress={() => router.push('/(app)/chat/new')}
+        android_ripple={{ color: c.rowPress, borderless: true }}
+        style={{
+          position: 'absolute',
+          right: 20,
+          bottom: BOTTOM_NAV_HEIGHT + 20,
+          width: 56,
+          height: 56,
+          borderRadius: 28,
+          backgroundColor: c.accent,
+          alignItems: 'center',
+          justifyContent: 'center',
+          shadowColor: '#000',
+          shadowOpacity: 0.25,
+          shadowRadius: 10,
+          shadowOffset: { width: 0, height: 4 },
+          elevation: 6,
+        }}>
+        <Ionicons name="create" size={26} color={c.accentText} />
+      </Pressable>
     </View>
   );
 }
