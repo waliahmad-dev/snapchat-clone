@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { View, Text, Pressable, Switch, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { useThemeColors } from '@lib/theme/useThemeColors';
 
 export default function NotificationsScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const c = useThemeColors();
   const [messages, setMessages] = useState(true);
   const [stories, setStories] = useState(true);
@@ -44,7 +46,7 @@ export default function NotificationsScreen() {
           </Text>
         </Pressable>
         <Text className="font-bold text-xl ml-4" style={{ color: c.textPrimary }}>
-          Notifications
+          {t('settings.notifications.title')}
         </Text>
       </View>
 
@@ -52,12 +54,27 @@ export default function NotificationsScreen() {
         <View
           className="mt-4 rounded-xl mx-4"
           style={{ backgroundColor: c.surfaceElevated }}>
-          {row('Messages', 'New snaps and chats', messages, setMessages)}
-          {row('Stories', 'When friends post stories', stories, setStories)}
-          {row('Friend Requests', 'New friend requests', friendRequests, setFriendRequests)}
           {row(
-            'Streak Reminders',
-            'Before a streak is about to expire',
+            t('settings.notifications.messages'),
+            t('settings.notifications.messagesSub'),
+            messages,
+            setMessages,
+          )}
+          {row(
+            t('settings.notifications.stories'),
+            t('settings.notifications.storiesSub'),
+            stories,
+            setStories,
+          )}
+          {row(
+            t('settings.notifications.friendRequests'),
+            t('settings.notifications.friendRequestsSub'),
+            friendRequests,
+            setFriendRequests,
+          )}
+          {row(
+            t('settings.notifications.streakReminders'),
+            t('settings.notifications.streakRemindersSub'),
             streakReminders,
             setStreakReminders,
           )}

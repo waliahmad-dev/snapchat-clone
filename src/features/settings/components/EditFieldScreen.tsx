@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useThemeColors, type ThemeColors } from '@lib/theme/useThemeColors';
 
 type Props = {
@@ -28,7 +29,7 @@ type Props = {
 export function EditFieldScreen({
   title,
   description,
-  saveLabel = 'Save',
+  saveLabel,
   saveDisabled,
   saving,
   saveDanger,
@@ -36,8 +37,10 @@ export function EditFieldScreen({
   children,
 }: Props) {
   const router = useRouter();
+  const { t } = useTranslation();
   const c = useThemeColors();
   const styles = useStyles(c);
+  const resolvedSaveLabel = saveLabel ?? t('common.save');
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
@@ -67,7 +70,7 @@ export function EditFieldScreen({
                   fontWeight: '700',
                   fontSize: 15,
                 }}>
-                {saveLabel}
+                {resolvedSaveLabel}
               </Text>
             )}
           </Pressable>

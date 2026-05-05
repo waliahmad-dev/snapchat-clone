@@ -7,6 +7,7 @@ import { enqueueJob } from '@lib/offline/outboxRunner';
 import { JOB } from '@lib/offline/jobs';
 import { uuid } from '@lib/offline/uuid';
 import { useAuthStore } from '@features/auth/store/authStore';
+import i18n from '@lib/i18n';
 import type { DbMessage, MessageType } from '@/types/database';
 
 interface Props {
@@ -116,7 +117,7 @@ export function SnapSequencePlayer({ messageIds, myName, conversationId, onFinis
     });
 
     const sysId = uuid();
-    const sysContent = `${myName} saved a snap`;
+    const sysContent = i18n.t('chat.savedSnap', { name: myName });
     await database.write(async () => {
       await database.get<Message>('messages').create((m) => {
         m.remoteId = sysId;

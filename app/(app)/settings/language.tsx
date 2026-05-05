@@ -5,41 +5,21 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useThemeColors, type ThemeColors } from '@lib/theme/useThemeColors';
-import { useThemeStore, type ThemeMode } from '@lib/theme/themeStore';
+import { useLocale, LANGUAGE_LABEL, LANGUAGE_FLAG } from '@lib/i18n/useLocale';
+import { SUPPORTED_LOCALES, type Locale } from '@lib/i18n';
 
-const OPTIONS: {
-  value: ThemeMode;
-  labelKey: string;
-  descriptionKey: string;
-  icon: React.ComponentProps<typeof Ionicons>['name'];
-}[] = [
-  {
-    value: 'system',
-    labelKey: 'settings.appearance.systemLabel',
-    descriptionKey: 'settings.appearance.systemDescription',
-    icon: 'phone-portrait-outline',
-  },
-  {
-    value: 'light',
-    labelKey: 'settings.appearance.lightLabel',
-    descriptionKey: 'settings.appearance.lightDescription',
-    icon: 'sunny-outline',
-  },
-  {
-    value: 'dark',
-    labelKey: 'settings.appearance.darkLabel',
-    descriptionKey: 'settings.appearance.darkDescription',
-    icon: 'moon-outline',
-  },
-];
+const DESCRIPTIONS: Record<Locale, string> = {
+  en: 'Use English throughout the app',
+  fr: 'Utiliser le français dans toute l’application',
+  es: 'Usar español en toda la aplicación',
+};
 
-export default function AppearanceScreen() {
+export default function LanguageScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const c = useThemeColors();
   const styles = useStyles(c);
-  const mode = useThemeStore((s) => s.mode);
-  const setMode = useThemeStore((s) => s.setMode);
+  const { locale, setLocale } = useLocale();
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
@@ -48,34 +28,34 @@ export default function AppearanceScreen() {
           <Pressable onPress={() => router.back()} hitSlop={10} style={styles.headerBtn}>
             <Ionicons name="chevron-back" size={26} color={c.textPrimary} />
           </Pressable>
-          <Text style={styles.headerTitle}>{t('settings.appearance.title')}</Text>
+          <Text style={styles.headerTitle}>{t('settings.language.title')}</Text>
           <View style={styles.headerBtn} />
         </View>
       </SafeAreaView>
 
       <ScrollView contentContainerStyle={{ paddingTop: 8, paddingBottom: 48 }}>
-        <Text style={styles.sectionLabel}>{t('settings.appearance.theme')}</Text>
+        <Text style={styles.sectionLabel}>{t('settings.language.sectionLabel')}</Text>
         <View style={styles.group}>
-          {OPTIONS.map((opt, idx) => (
-            <React.Fragment key={opt.value}>
+          {SUPPORTED_LOCALES.map((l, idx) => (
+            <React.Fragment key={l}>
               <Pressable
-                onPress={() => setMode(opt.value)}
+                onPress={() => setLocale(l)}
                 android_ripple={{ color: c.rowPress }}
                 style={styles.row}>
                 <View style={[styles.iconCircle, { backgroundColor: c.iconCircleBg }]}>
-                  <Ionicons name={opt.icon} size={18} color={c.textPrimary} />
+                  <Text style={{ fontSize: 18 }}>{LANGUAGE_FLAG[l]}</Text>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.label}>{t(opt.labelKey)}</Text>
-                  <Text style={styles.description}>{t(opt.descriptionKey)}</Text>
+                  <Text style={styles.label}>{LANGUAGE_LABEL[l]}</Text>
+                  <Text style={styles.description}>{DESCRIPTIONS[l]}</Text>
                 </View>
-                {mode === opt.value ? (
+                {locale === l ? (
                   <Ionicons name="checkmark" size={22} color={c.accent} />
                 ) : (
                   <View style={{ width: 22 }} />
                 )}
               </Pressable>
-              {idx < OPTIONS.length - 1 && <View style={styles.divider} />}
+              {idx < SUPPORTED_LOCALES.length - 1 && <View style={styles.divider} />}
             </React.Fragment>
           ))}
         </View>
@@ -150,13 +130,6 @@ function useStyles(c: ThemeColors) {
       height: StyleSheet.hairlineWidth,
       backgroundColor: c.border,
       marginLeft: 58,
-    },
-    footnote: {
-      color: c.textMuted,
-      fontSize: 12,
-      lineHeight: 18,
-      paddingHorizontal: 24,
-      paddingTop: 14,
     },
   });
 }

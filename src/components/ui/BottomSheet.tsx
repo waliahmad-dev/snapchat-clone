@@ -13,6 +13,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 import { useThemeColors, type ThemeColors } from '@lib/theme/useThemeColors';
 
 const { height: SCREEN_H } = Dimensions.get('window');
@@ -33,16 +34,17 @@ interface Props {
 export function BottomSheet({ visible, title, actions, onClose }: Props) {
   const c = useThemeColors();
   const styles = makeStyles(c);
+  const { t } = useTranslation();
   const translateY = useSharedValue(SCREEN_H);
   const backdropOpacity = useSharedValue(0);
 
   useEffect(() => {
     if (visible) {
-      translateY.value = withSpring(0, { damping: 20, stiffness: 200 });
-      backdropOpacity.value = withTiming(1, { duration: 200 });
+      translateY.value = withSpring(0, { damping: 24, stiffness: 110, mass: 1 });
+      backdropOpacity.value = withTiming(1, { duration: 280 });
     } else {
-      translateY.value = withTiming(SCREEN_H, { duration: 200 });
-      backdropOpacity.value = withTiming(0, { duration: 200 });
+      translateY.value = withTiming(SCREEN_H, { duration: 240 });
+      backdropOpacity.value = withTiming(0, { duration: 240 });
     }
   }, [visible]);
 
@@ -87,7 +89,7 @@ export function BottomSheet({ visible, title, actions, onClose }: Props) {
           ))}
 
           <Pressable style={[styles.action, styles.cancelAction]} onPress={onClose}>
-            <Text style={styles.cancelText}>Cancel</Text>
+            <Text style={styles.cancelText}>{t('common.cancel')}</Text>
           </Pressable>
         </Animated.View>
       </View>

@@ -24,6 +24,7 @@ import {
   type MessageMutationJob,
   type SystemMessageJob,
   type ConversationTouchJob,
+  type ChatPresenceSetJob,
   type FriendRequestJob,
   type FriendAcceptJob,
   type FriendIdJob,
@@ -58,6 +59,7 @@ export function initOfflineHandlers(): void {
   registerHandler(JOB.MESSAGE_DELETE, messageMutation as never);
   registerHandler(JOB.SYSTEM_MESSAGE, systemMessage as never);
   registerHandler(JOB.CONVERSATION_TOUCH, conversationTouch as never);
+  registerHandler(JOB.CHAT_PRESENCE_SET, chatPresenceSet as never);
   registerHandler(JOB.FRIEND_REQUEST, friendRequest as never);
   registerHandler(JOB.FRIEND_ACCEPT, friendAccept as never);
   registerHandler(JOB.FRIEND_DECLINE, friendDecline as never);
@@ -340,6 +342,14 @@ async function conversationTouch(p: ConversationTouchJob): Promise<void> {
     .from('conversations')
     .update({ updated_at: new Date().toISOString() })
     .eq('id', p.conversationId);
+  if (error) throw error;
+}
+
+async function chatPresenceSet(p: ChatPresenceSetJob): Promise<void> {
+  const { error } = await supabase.rpc('set_chat_presence', {
+    _conversation: p.conversationId,
+    _in_chat: p.inChat,
+  });
   if (error) throw error;
 }
 

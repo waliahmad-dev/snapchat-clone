@@ -25,6 +25,7 @@ import Animated, {
 import * as Haptics from 'expo-haptics';
 import { formatDistanceToNow } from 'date-fns/formatDistanceToNow';
 import { differenceInDays, format } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@lib/supabase/client';
 import { uploadToStorage } from '@lib/supabase/storage';
 import { processImage } from '@lib/imageManipulator/processor';
@@ -54,6 +55,7 @@ export function MemoryViewer({
   onClose,
   onDelete,
 }: Props) {
+  const { t } = useTranslation();
   const profile = useAuthStore((s) => s.profile);
   const listRef = useRef<FlatList<Memory>>(null);
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
@@ -135,17 +137,17 @@ export function MemoryViewer({
   );
 
   const handleDelete = useCallback(() => {
-    Alert.alert('Delete memory?', 'This cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('memories.viewer.deleteTitle'), t('memories.viewer.deleteBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Delete',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: async () => {
           await onDelete(currentMemory);
         },
       },
     ]);
-  }, [currentMemory, onDelete]);
+  }, [currentMemory, onDelete, t]);
 
   const handleAddToStory = useCallback(async () => {
     if (!profile) return;
@@ -161,14 +163,14 @@ export function MemoryViewer({
       });
       if (error) throw error;
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert('Posted', 'Added to your story.');
+      Alert.alert(t('memories.viewer.postedTitle'), t('memories.viewer.postedBody'));
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Please try again.';
-      Alert.alert('Could not post', msg);
+      const msg = err instanceof Error ? err.message : t('common.tryAgain');
+      Alert.alert(t('memories.viewer.couldNotPostTitle'), msg);
     } finally {
       setPostingStory(false);
     }
-  }, [currentMemory, profile, resolveLocalUri]);
+  }, [currentMemory, profile, resolveLocalUri, t]);
 
   const handleSendToFriends = useCallback(async () => {
     try {
@@ -176,9 +178,9 @@ export function MemoryViewer({
       setRecipientUri(local);
       setShowRecipients(true);
     } catch {
-      Alert.alert('Not ready', 'Please try again in a moment.');
+      Alert.alert(t('memories.viewer.notReadyTitle'), t('memories.viewer.notReadyBody'));
     }
-  }, [currentMemory, resolveLocalUri]);
+  }, [currentMemory, resolveLocalUri, t]);
 
   return (
     <Modal
@@ -249,13 +251,13 @@ export function MemoryViewer({
             <View style={styles.actionRow}>
               <ActionPill
                 icon="book-outline"
-                label={postingStory ? 'Posting…' : 'My Story'}
+                label={postingStory ? t('memories.viewer.posting') : t('memories.viewer.myStory')}
                 onPress={handleAddToStory}
                 disabled={postingStory}
               />
               <ActionPill
                 icon="paper-plane-outline"
-                label="Send To"
+                label={t('memories.viewer.sendTo')}
                 primary
                 onPress={handleSendToFriends}
               />

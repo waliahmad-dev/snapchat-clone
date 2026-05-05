@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Avatar } from '@components/ui/Avatar';
 import { SnapScore } from './SnapScore';
 import { useThemeColors } from '@lib/theme/useThemeColors';
@@ -14,6 +15,7 @@ interface Props {
 
 export function ProfileHeader({ profile, friendCount, onAvatarPress, editable = false }: Props) {
   const c = useThemeColors();
+  const { t } = useTranslation();
   return (
     <View className="items-center py-6">
       <Pressable onPress={editable ? onAvatarPress : undefined} className="relative">
@@ -44,7 +46,7 @@ export function ProfileHeader({ profile, friendCount, onAvatarPress, editable = 
             {friendCount}
           </Text>
           <Text className="text-xs" style={{ color: c.textSecondary }}>
-            Friends
+            {t('profile.friendsLabel')}
           </Text>
         </View>
       </View>

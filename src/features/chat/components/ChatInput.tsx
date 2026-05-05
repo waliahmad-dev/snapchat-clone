@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from 'react-i18next';
 import { useReplyStore } from '../store/replyStore';
 import { useThemeColors } from '@lib/theme/useThemeColors';
 
@@ -19,6 +20,7 @@ interface Props {
 
 export function ChatInput({ onSend, onCameraPress }: Props) {
   const c = useThemeColors();
+  const { t } = useTranslation();
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
 
@@ -54,7 +56,7 @@ export function ChatInput({ onSend, onCameraPress }: Props) {
           />
           <View className="flex-1">
             <Text className="text-xs font-bold" style={{ color: c.accent }}>
-              Replying to {replyTarget.authorName}
+              {t('chat.conversation.replyingTo', { name: replyTarget.authorName })}
             </Text>
             <Text
               className="text-xs mt-0.5"
@@ -82,7 +84,11 @@ export function ChatInput({ onSend, onCameraPress }: Props) {
         <TextInput
           className="flex-1 rounded-full px-4 py-2 text-base"
           style={{ backgroundColor: c.inputBg, color: c.textPrimary }}
-          placeholder={replyTarget ? `Reply to ${replyTarget.authorName}…` : 'Send a chat…'}
+          placeholder={
+            replyTarget
+              ? t('chat.conversation.replyPlaceholder', { name: replyTarget.authorName })
+              : t('chat.conversation.sendPlaceholder')
+          }
           placeholderTextColor={c.placeholder}
           value={text}
           onChangeText={setText}

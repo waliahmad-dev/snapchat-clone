@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { TextInput, Alert, View, Text } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useProfile } from '@features/profile/hooks/useProfile';
 import {
   USERNAME_REGEX,
@@ -14,6 +15,7 @@ import { useThemeColors } from '@lib/theme/useThemeColors';
 
 export default function EditUsernameScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { profile, refresh } = useProfile();
   const userId = useAuthStore((s) => s.user?.id ?? '');
   const s = useStyledInput();
@@ -43,18 +45,25 @@ export default function EditUsernameScreen() {
       await refresh();
       router.back();
     } catch (err) {
-      Alert.alert('Could not save', err instanceof Error ? err.message : 'Please try again.');
+      Alert.alert(
+        t('settings.account.common.couldNotSave'),
+        err instanceof Error ? err.message : t('settings.account.common.tryAgain'),
+      );
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <EditFieldScreen title="Username" onSave={save} saveDisabled={!canSave} saving={saving}>
+    <EditFieldScreen
+      title={t('settings.account.username.title')}
+      onSave={save}
+      saveDisabled={!canSave}
+      saving={saving}>
       <TextInput
         value={username}
         onChangeText={setUsername}
-        placeholder="Username"
+        placeholder={t('settings.account.username.placeholder')}
         placeholderTextColor={c.placeholder}
         autoCapitalize="none"
         autoCorrect={false}
@@ -65,19 +74,20 @@ export default function EditUsernameScreen() {
 
       <View style={{ marginTop: 12 }}>
         {!formatOk && username.length > 0 && (
-          <Text style={s.error}>
-            Must be 3–20 characters: lowercase letters, numbers, dot or underscore.
-          </Text>
+          <Text style={s.error}>{t('settings.account.username.errorFormat')}</Text>
         )}
         <Text style={s.hint}>
           {remaining === null
-            ? `You can change your username up to ${USERNAME_CHANGES_PER_YEAR} times per year.`
+            ? t('settings.account.username.hintInitial', { count: USERNAME_CHANGES_PER_YEAR })
             : remaining > 0
-              ? `${remaining} of ${USERNAME_CHANGES_PER_YEAR} changes remaining this year.`
-              : 'You have used all your username changes for this year.'}
+              ? t('settings.account.username.hintRemaining', {
+                  remaining,
+                  count: USERNAME_CHANGES_PER_YEAR,
+                })
+              : t('settings.account.username.hintExhausted')}
         </Text>
         <Text style={[s.hint, { marginTop: 4, color: c.textMuted }]}>
-          A username can be reused only after the previous owner releases it.
+          {t('settings.account.username.hintReuse')}
         </Text>
       </View>
     </EditFieldScreen>

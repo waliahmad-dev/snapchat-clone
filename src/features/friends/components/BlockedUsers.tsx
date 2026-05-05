@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, Pressable, Alert, ActivityIndicator } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@lib/supabase/client';
 import { Avatar } from '@components/ui/Avatar';
 import { useAuthStore } from '@features/auth/store/authStore';
@@ -12,6 +13,7 @@ interface BlockedEntry extends DbUser {
 
 export function BlockedUsers() {
   const c = useThemeColors();
+  const { t } = useTranslation();
   const profile = useAuthStore((s) => s.profile);
   const [blocked, setBlocked] = useState<BlockedEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,10 +52,10 @@ export function BlockedUsers() {
   }
 
   async function unblock(blockId: string, name: string) {
-    Alert.alert(`Unblock ${name}?`, 'They will be able to see your profile and send you snaps.', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('search.blocked.unblockTitle', { name }), t('search.blocked.unblockBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Unblock',
+        text: t('search.blocked.unblock'),
         onPress: async () => {
           await supabase.from('blocks').delete().eq('id', blockId);
           load();
@@ -74,7 +76,7 @@ export function BlockedUsers() {
     return (
       <View className="flex-1 items-center justify-center px-8">
         <Text className="text-center" style={{ color: c.textMuted }}>
-          No blocked users
+          {t('search.blocked.emptyMessage')}
         </Text>
       </View>
     );
@@ -102,7 +104,7 @@ export function BlockedUsers() {
             className="rounded-full px-3 py-2"
             style={{ backgroundColor: c.surfaceElevated }}>
             <Text className="text-xs font-semibold" style={{ color: c.textPrimary }}>
-              Unblock
+              {t('search.blocked.unblock')}
             </Text>
           </Pressable>
         </View>

@@ -1,0 +1,554 @@
+{
+  "common": {
+    "appName": "Snapchat",
+    "back": "← Back",
+    "cancel": "Cancel",
+    "error": "Error",
+    "language": "Language",
+    "save": "Save",
+    "ok": "OK",
+    "delete": "Delete",
+    "reply": "Reply",
+    "send": "Send",
+    "done": "Done",
+    "leave": "Leave",
+    "someone": "someone",
+    "tryAgain": "Please try again.",
+    "offlineWaiting_one": "Offline · {{count}} item waiting",
+    "offlineWaiting_other": "Offline · {{count}} items waiting",
+    "offlineNoItems": "Offline · changes will sync when reconnected",
+    "syncingItems_one": "Syncing {{count}} item…",
+    "syncingItems_other": "Syncing {{count}} items…",
+    "unknown": "Unknown",
+    "message": "Message",
+    "friend": "Friend",
+    "member": "Member",
+    "you": "You",
+    "they": "They"
+  },
+  "auth": {
+    "welcome": {
+      "tagline": "Share the moment. It disappears.",
+      "signUp": "Sign Up",
+      "logIn": "Log In"
+    },
+    "login": {
+      "title": "Log In",
+      "emailPlaceholder": "Email",
+      "passwordPlaceholder": "Password",
+      "submit": "Log In",
+      "errorFillAll": "Please fill in all fields",
+      "failed": "Login Failed"
+    },
+    "signup": {
+      "title": "Create Account",
+      "displayNamePlaceholder": "Display Name",
+      "usernamePlaceholder": "Username (e.g. snapuser42)",
+      "emailPlaceholder": "Email",
+      "passwordPlaceholder": "Password (8+ characters)",
+      "submit": "Create Account",
+      "errorFillAll": "Please fill in all fields",
+      "errorInvalidUsernameTitle": "Invalid Username",
+      "errorInvalidUsername": "Use 3–20 characters: letters, numbers, dots, underscores",
+      "errorWeakPasswordTitle": "Weak Password",
+      "errorWeakPassword": "Password must be at least 8 characters",
+      "usernameTakenTitle": "Username Taken",
+      "usernameTaken": "Please choose a different username",
+      "checkEmailTitle": "Check your email",
+      "checkEmail": "We sent a confirmation link to your email.",
+      "failed": "Signup Failed"
+    },
+    "verify": {
+      "title": "Check your email",
+      "subtitle": "We sent a 6-digit code to",
+      "submit": "Verify",
+      "failedTitle": "Verification failed",
+      "codeSentTitle": "Code sent",
+      "codeSent": "A new code was sent to {{email}}",
+      "resendPrompt": "Didn't get it?",
+      "resend": "Resend code"
+    }
+  },
+  "settings": {
+    "index": {
+      "title": "Settings",
+      "myAccount": "My Account",
+      "name": "Name",
+      "username": "Username",
+      "birthday": "Birthday",
+      "mobile": "Mobile Number",
+      "email": "Email",
+      "notSet": "Not set",
+      "preferences": "Preferences",
+      "appearance": "Appearance",
+      "language": "Language",
+      "privacy": "Privacy",
+      "blockedUsers": "Blocked Users",
+      "loginSecurity": "Login & Security",
+      "password": "Password",
+      "accountDeletion": "Account Deletion",
+      "deleteMyAccount": "Delete My Account",
+      "logoutSection": "Logout",
+      "logout": "Log Out",
+      "logoutConfirmTitle": "Log out",
+      "logoutConfirm": "Are you sure you want to log out?"
+    },
+    "appearance": {
+      "title": "Appearance",
+      "theme": "Theme",
+      "systemLabel": "System",
+      "systemDescription": "Match your device appearance",
+      "lightLabel": "Light",
+      "lightDescription": "Always use light mode",
+      "darkLabel": "Dark",
+      "darkDescription": "Always use dark mode"
+    },
+    "language": {
+      "title": "Language",
+      "sectionLabel": "Language"
+    },
+    "blocked": {
+      "title": "Blocked",
+      "emptyTitle": "No blocked users",
+      "emptyBody": "People you block won’t be able to find you in search or contact you.",
+      "sectionLabel": "Blocked ({{count}})",
+      "unblock": "Unblock",
+      "unblockTitle": "Unblock {{name}}?",
+      "unblockBody": "They will be discoverable in search again, but no friendship, messages, or streak will be restored. You both have to add each other and start fresh."
+    },
+    "notifications": {
+      "title": "Notifications",
+      "messages": "Messages",
+      "messagesSub": "New snaps and chats",
+      "stories": "Stories",
+      "storiesSub": "When friends post stories",
+      "friendRequests": "Friend Requests",
+      "friendRequestsSub": "New friend requests",
+      "streakReminders": "Streak Reminders",
+      "streakRemindersSub": "Before a streak is about to expire"
+    },
+    "privacy": {
+      "title": "Privacy",
+      "contact": "Contact",
+      "whoCanContact": "Who can contact me",
+      "friendsOnly": "Friends only",
+      "whoCanView": "Who can view my story",
+      "blocking": "Blocking",
+      "blockedUsers": "Blocked Users",
+      "manageBlocked": "Manage blocked accounts"
+    },
+    "storage": {
+      "title": "Storage",
+      "cache": "Cache",
+      "cacheSub": "Cached images and media",
+      "cacheCalculating": "Calculating…",
+      "cacheUnknown": "Unknown",
+      "clearCache": "Clear Cache",
+      "clearCacheBody": "This will remove cached images and temporary files.",
+      "clear": "Clear",
+      "cacheNote": "Clearing the cache will not delete your memories or saved snaps. They are stored securely in the cloud."
+    },
+    "account": {
+      "common": {
+        "couldNotSave": "Could not save",
+        "tryAgain": "Please try again."
+      },
+      "name": {
+        "title": "Name",
+        "description": "Your name is shown to friends. It can be changed at any time.",
+        "placeholder": "Your name"
+      },
+      "username": {
+        "title": "Username",
+        "placeholder": "Username",
+        "errorFormat": "Must be 3–20 characters: lowercase letters, numbers, dot or underscore.",
+        "hintInitial": "You can change your username up to {{count}} times per year.",
+        "hintRemaining": "{{remaining}} of {{count}} changes remaining this year.",
+        "hintExhausted": "You have used all your username changes for this year.",
+        "hintReuse": "A username can be reused only after the previous owner releases it."
+      },
+      "email": {
+        "title": "Email",
+        "description": "Enter your new email and password to confirm.",
+        "newEmailLabel": "New email",
+        "emailPlaceholder": "you@example.com",
+        "emailInvalid": "Enter a valid email address.",
+        "passwordLabel": "Current password",
+        "passwordPlaceholder": "••••••••",
+        "confirmTitle": "Confirm your email",
+        "confirmBody": "A confirmation link has been sent to your new email address. Your email will update once you confirm.",
+        "errorTitle": "Could not change email"
+      },
+      "phone": {
+        "title": "Mobile Number",
+        "description": "Add a number so friends can find you",
+        "placeholder": "+1 555 123 4567",
+        "errorFormat": "Enter a valid number (digits only, optional leading +)."
+      },
+      "password": {
+        "title": "Password",
+        "currentLabel": "Current password",
+        "newLabel": "New password",
+        "confirmLabel": "Confirm new password",
+        "placeholder": "••••••••",
+        "mismatch": "Passwords don’t match.",
+        "req8chars": "At least 8 characters",
+        "reqUpper": "One uppercase letter",
+        "reqLower": "One lowercase letter",
+        "reqNumber": "One number",
+        "reqSymbol": "One symbol",
+        "successTitle": "Password changed",
+        "successBody": "Your password has been updated.",
+        "errorTitle": "Could not change password"
+      },
+      "birthday": {
+        "title": "Birthday",
+        "yearPlaceholder": "YYYY",
+        "monthPlaceholder": "MM",
+        "dayPlaceholder": "DD",
+        "tooYoung": "You must be at least {{minAge}} years old to use Snapchat.",
+        "age": "Age: {{age}}"
+      },
+      "delete": {
+        "title": "Delete Account",
+        "description": "This will permanently delete @{{username}} and all associated data. This action cannot be undone.",
+        "descriptionFallback": "your account",
+        "saveLabel": "Delete",
+        "willLose": "You will lose:",
+        "lossList": "• Your profile, name and username (the username will become available to others)\n• All snaps, stories and memories\n• All chats and friend connections\n• Your snap score",
+        "passwordLabel": "Current password",
+        "passwordPlaceholder": "••••••••",
+        "confirmLabel": "Type {{phrase}} to confirm",
+        "confirmPhrase": "DELETE",
+        "alertTitle": "Delete account?",
+        "alertBody": "This will permanently delete your account, snaps, stories, memories and chats. This cannot be undone.",
+        "deleteForever": "Delete forever",
+        "errorTitle": "Could not delete account"
+      }
+    }
+  },
+  "chat": {
+    "panel": {
+      "title": "Chat",
+      "emptyTitle": "No chats yet",
+      "emptyBodyFull": "Add friends from your profile to start snapping, or tap \"+\" to start a group.",
+      "emptyBodyShort": "Add friends from your profile to start snapping.",
+      "newFriendsLabel": "New Friends",
+      "sayHiTo": "👋 Say hi to {{name}}!"
+    },
+    "conversation": {
+      "newFriendTitle": "You're now friends with {{name}}!",
+      "newFriendBody": "Say hi with a wave — send your first snap or message.",
+      "replyingTo": "Replying to {{name}}",
+      "replyPlaceholder": "Reply to {{name}}…",
+      "sendPlaceholder": "Send a chat…"
+    },
+    "row": {
+      "sent": "Sent",
+      "opened": "Opened",
+      "delivered": "Delivered",
+      "replied": "Replied",
+      "sentYouMessage": "Sent you a Message",
+      "sayHi": "Say hi!"
+    },
+    "preview": {
+      "deleted": "Message deleted",
+      "snap": "📷 Snap",
+      "photo": "🖼 Photo",
+      "systemEvent": "System event"
+    },
+    "time": {
+      "justNow": "just now",
+      "minutesAgo": "{{count}}m ago",
+      "hoursAgo": "{{count}}h ago",
+      "daysAgo": "{{count}}d ago",
+      "now": "now",
+      "minutes": "{{count}}m",
+      "hours": "{{count}}h",
+      "days": "{{count}}d",
+      "weeks": "{{count}}w"
+    },
+    "notifications": {
+      "snapBody": "📸 Sent you a Snap",
+      "messageBody": "💬 {{content}}",
+      "messageEmpty": "💬 Sent you a message",
+      "groupSnap": "📷 {{name}} sent a snap",
+      "groupMention": "🏷️ {{name}} mentioned you",
+      "groupMessage": "💬 {{name}}: {{content}}"
+    },
+    "savedSnap": "{{name}} saved a snap",
+    "unsavedSnap": "{{name}} unsaved a snap",
+    "savedMessage": "{{name}} saved a message",
+    "unsavedMessage": "{{name}} unsaved a message",
+    "savedBadge": "SAVED",
+    "deleteSnapTitle": "Delete snap?",
+    "deleteSnapBody": "Both of you will see that you deleted it.",
+    "deleteMessageTitle": "Delete message?",
+    "deleteMessageBody": "Both of you will see it was deleted.",
+    "replyToSnapTitle": "Reply to snap?",
+    "replyToMessageTitle": "Reply to this message?",
+    "snap": {
+      "save": "SAVE",
+      "holdHint": "Hold to view • Release to close",
+      "loading": "Loading snap…",
+      "couldNotLoad": "Snap couldn’t load",
+      "statusOpened": "📷 Snap Opened",
+      "statusSent": "📷 Snap Sent",
+      "statusViewed": "📷 Snap Viewed",
+      "statusTapToOpen": "📷 Tap to Open",
+      "newSnap": "New Snap — Tap to open",
+      "unsaveTitle": "Unsave?",
+      "unsaveBody": "If you unsave, it'll be removed from the chat.",
+      "unsave": "Unsave",
+      "saveInChatTitle": "Save this snap?",
+      "saveInChatBody": "Both of you will see that it was saved.",
+      "saveInChat": "Save in chat"
+    },
+    "new": {
+      "title": "New Chat",
+      "chatButton": "Chat",
+      "chatButtonCount": "Chat ({{count}})",
+      "groupNamePlaceholder": "Group name (optional)",
+      "searchPlaceholder": "Search friends",
+      "selectedCount": "{{count}} selected",
+      "emptyTitle": "No friends yet",
+      "emptyBody": "Add friends from your profile to start a chat.",
+      "errorTitle": "Could not start chat"
+    },
+    "group": {
+      "settings": {
+        "title": "Group Info",
+        "leaveTitle": "Leave group?",
+        "leaveBody": "Others will be notified you left.",
+        "namePlaceholder": "Group name",
+        "members": "Members",
+        "notifications": "Notifications",
+        "notifyAll": "All messages",
+        "notifyAllSub": "Get notified for every message",
+        "notifyMentions": "Mentions only",
+        "notifyMentionsSub": "Get notified only when @-mentioned",
+        "notifyMute": "Mute",
+        "notifyMuteSub": "Silence all notifications",
+        "seeAllMembers": "See all members & add",
+        "dangerZone": "Danger zone",
+        "leaveGroup": "Leave group"
+      },
+      "members": {
+        "title": "Members · {{count}}",
+        "addTitle": "Add Members",
+        "addButton": "Add",
+        "addButtonCount": "Add ({{count}})",
+        "searchPlaceholder": "Search friends",
+        "emptyBody": "All your friends are already in this group.",
+        "errorAddTitle": "Could not add"
+      },
+      "index": {
+        "memberCount_one": "{{count}} member",
+        "memberCount_other": "{{count}} members",
+        "emptyBody": "Say hi — send a snap or message to break the ice."
+      },
+      "row": {
+        "justYou": "Just you so far",
+        "sayHi": "Say hi to the group!"
+      },
+      "input": {
+        "replyPlaceholder": "Reply to {{name}}…",
+        "sendPlaceholder": "Send to group…"
+      },
+      "bubble": {
+        "deleteSnapBody": "Members will see that you deleted it.",
+        "deleteMessageBody": "Members will see it was deleted.",
+        "mentionedYou": "MENTIONED YOU",
+        "snapStatusSent": "Sent · Tap to view",
+        "deletedSnap": "{{name}} deleted a snap"
+      },
+      "memberRow": {
+        "youSuffix": " (You)"
+      },
+      "system": {
+        "createdGroup": "{{name}} created the group",
+        "addedMember": "{{name}} added {{member}}",
+        "leftGroup": "{{name}} left the group"
+      }
+    }
+  },
+  "camera": {
+    "panel": {
+      "discardTitle": "Discard Snap?",
+      "discardBody": "Your snap will not be saved.",
+      "discard": "Discard",
+      "permissionRequired": "Camera access is required to take snaps.",
+      "allowCamera": "Allow Camera",
+      "memoriesHint": "Memories"
+    },
+    "preview": {
+      "couldNotSendTitle": "Could not send",
+      "permissionRequiredTitle": "Permission required",
+      "permissionRequiredBody": "Allow photo library access so we can save snaps to your gallery.",
+      "couldNotSaveTitle": "Could not save",
+      "sendTo": "Send To",
+      "sendToFriend": "Send to {{name}}"
+    },
+    "recipients": {
+      "title": "Send To",
+      "myStory": "My Story",
+      "emptyBody": "Add friends or start a group to send snaps.",
+      "groups": "Groups",
+      "friends": "Friends",
+      "memberCount_one": "{{count}} member",
+      "memberCount_other": "{{count}} members"
+    }
+  },
+  "stories": {
+    "title": "Stories",
+    "friends": "Friends",
+    "panelEmptyBody": "Add friends to see their stories here.",
+    "indexEmptyTitle": "No stories yet",
+    "indexEmptyBody": "Post your first story or add friends to see theirs.",
+    "openCamera": "Open Camera",
+    "recent": "Recent",
+    "feedEmptyTitle": "No stories yet",
+    "feedEmptyBody": "Add friends or post your own story to see it here.",
+    "recentStories": "Recent Stories",
+    "newBadge": "New",
+    "storyCount_one": "{{count}} story",
+    "storyCount_other": "{{count}} stories",
+    "creator": {
+      "queueFailedTitle": "Failed to queue story",
+      "addToMyStory": "Add to My Story",
+      "post": "Post"
+    },
+    "viewer": {
+      "deleteTitle": "Delete Story?",
+      "deleteBody": "This story will be removed from your profile.",
+      "deleteFailedTitle": "Could not delete story",
+      "loading": "Loading story…",
+      "loadFailed": "Story couldn't load",
+      "viewedBy": "Viewed by {{count}}",
+      "loadingViewers": "Loading viewers…",
+      "noViewers": "No one has viewed this yet."
+    }
+  },
+  "memories": {
+    "title": "Memories",
+    "open": "Open Memories",
+    "syncing": "Syncing your memories…",
+    "loading": "Loading your memories…",
+    "emptyTitle": "No memories yet",
+    "emptyBody": "Take snaps and save them here. They'll last forever!",
+    "cellUploading": "Uploading…",
+    "cellPending": "Pending",
+    "uploadProgress_one": "Uploading {{count}} memory…",
+    "uploadProgress_other": "Uploading {{count}} memories…",
+    "viewer": {
+      "deleteTitle": "Delete memory?",
+      "deleteBody": "This cannot be undone.",
+      "postedTitle": "Posted",
+      "postedBody": "Added to your story.",
+      "couldNotPostTitle": "Could not post",
+      "notReadyTitle": "Not ready",
+      "notReadyBody": "Please try again in a moment.",
+      "posting": "Posting…",
+      "myStory": "My Story",
+      "sendTo": "Send To"
+    }
+  },
+  "profile": {
+    "myAccount": "My account",
+    "setBirthday": "Set birthday",
+    "myStory": "My Story",
+    "friendsLabel": "Friends",
+    "addFriends": "Add Friends",
+    "memories": "Memories",
+    "postTo": "Post to...",
+    "friendCount_one": "{{count}} friend",
+    "friendCount_other": "{{count}} friends",
+    "couldNotSaveTitle": "Could not save",
+    "uploadFailedTitle": "Upload failed",
+    "snapScore": "Snap Score",
+    "activeStreaks": "Active Streaks",
+    "birthdayModal": {
+      "title": "Your birthday",
+      "subtitle": "Used to display your zodiac sign.",
+      "yearPlaceholder": "YYYY",
+      "monthPlaceholder": "MM",
+      "dayPlaceholder": "DD",
+      "invalidTitle": "Invalid date",
+      "invalidBody": "Please enter a valid year, month and day.",
+      "saveErrorTitle": "Could not save birthday",
+      "missingColumnHint": "The date_of_birth column is missing on your users table — run the latest migration."
+    },
+    "user": {
+      "unfriendTitle": "Unfriend {{handle}}?",
+      "unfriendBody": "All of your messages, snaps, and shared media will be cleared and you will no longer appear in each other's chat lists. Your friendship will need to be re-established to chat again.",
+      "unfriend": "Unfriend",
+      "blockTitle": "Block {{handle}}?",
+      "blockBody": "Your friendship will end and all messages, snaps, shared media, and any active streak will be cleared on both sides. They won't be able to find you in search or contact you. You can manage blocks in Settings.",
+      "block": "Block",
+      "unavailableTitle": "User not available",
+      "unavailableBody": "This account can't be viewed because it has been blocked or is no longer accessible.",
+      "tabProfile": "Profile",
+      "friendsCheck": "✓ Friends",
+      "decline": "Decline",
+      "accept": "Accept",
+      "pending": "Pending",
+      "addFriend": "Add Friend",
+      "couldNotAccept": "Could not accept",
+      "couldNotDecline": "Could not decline",
+      "couldNotUnfriend": "Could not unfriend",
+      "couldNotBlock": "Could not block"
+    },
+    "horoscope": {
+      "aries": "Aries",
+      "taurus": "Taurus",
+      "gemini": "Gemini",
+      "cancer": "Cancer",
+      "leo": "Leo",
+      "virgo": "Virgo",
+      "libra": "Libra",
+      "scorpio": "Scorpio",
+      "sagittarius": "Sagittarius",
+      "capricorn": "Capricorn",
+      "aquarius": "Aquarius",
+      "pisces": "Pisces"
+    },
+    "monthShort": {
+      "1": "Jan",
+      "2": "Feb",
+      "3": "Mar",
+      "4": "Apr",
+      "5": "May",
+      "6": "Jun",
+      "7": "Jul",
+      "8": "Aug",
+      "9": "Sep",
+      "10": "Oct",
+      "11": "Nov",
+      "12": "Dec"
+    }
+  },
+  "search": {
+    "placeholder": "Search friends",
+    "noResults": "No users found for \"{{query}}\"",
+    "friendRequestsLabel": "Friend Requests",
+    "sentRequestsLabel": "Sent Requests",
+    "myFriendsLabel": "My Friends",
+    "chat": "Chat",
+    "added": "Added",
+    "accept": "Accept",
+    "add": "Add",
+    "emptyTitle": "Find your friends",
+    "emptyBody": "Search by username to add friends and start snapping.",
+    "blocked": {
+      "unblockTitle": "Unblock {{name}}?",
+      "unblockBody": "They will be able to see your profile and send you snaps.",
+      "unblock": "Unblock",
+      "emptyMessage": "No blocked users"
+    },
+    "friends": {
+      "emptyTitle": "No friends yet",
+      "emptyBody": "Search for people to add as friends."
+    }
+  },
+  "errors": {}
+}

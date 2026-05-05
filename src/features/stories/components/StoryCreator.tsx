@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, Alert, ActivityIndicator } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@features/auth/store/authStore';
 import { enqueueJob } from '@lib/offline/outboxRunner';
 import { JOB, type StoryPostJob } from '@lib/offline/jobs';
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export function StoryCreator({ capturedUri, onDone, onCancel }: Props) {
+  const { t } = useTranslation();
   const profile = useAuthStore((s) => s.profile);
   const [posting, setPosting] = useState(false);
 
@@ -39,8 +41,8 @@ export function StoryCreator({ capturedUri, onDone, onCancel }: Props) {
       onDone();
     } catch (err) {
       Alert.alert(
-        'Failed to queue story',
-        err instanceof Error ? err.message : 'Please try again.',
+        t('stories.creator.queueFailedTitle'),
+        err instanceof Error ? err.message : t('common.tryAgain'),
       );
     } finally {
       setPosting(false);
@@ -49,10 +51,10 @@ export function StoryCreator({ capturedUri, onDone, onCancel }: Props) {
 
   return (
     <View className="flex-row items-center justify-between px-4 py-3 bg-black/60 rounded-2xl mx-4">
-      <Text className="text-white font-semibold">Add to My Story</Text>
+      <Text className="text-white font-semibold">{t('stories.creator.addToMyStory')}</Text>
       <View className="flex-row gap-3">
         <Pressable onPress={onCancel} disabled={posting} className="px-4 py-2 rounded-full bg-white/10">
-          <Text className="text-white text-sm font-semibold">Cancel</Text>
+          <Text className="text-white text-sm font-semibold">{t('common.cancel')}</Text>
         </Pressable>
         <Pressable
           onPress={postStory}
@@ -61,7 +63,7 @@ export function StoryCreator({ capturedUri, onDone, onCancel }: Props) {
           {posting ? (
             <ActivityIndicator color="#000" size="small" />
           ) : (
-            <Text className="text-black text-sm font-bold">Post</Text>
+            <Text className="text-black text-sm font-bold">{t('stories.creator.post')}</Text>
           )}
         </Pressable>
       </View>

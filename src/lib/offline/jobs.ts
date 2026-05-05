@@ -8,6 +8,7 @@ export const JOB = {
   MESSAGE_DELETE: 'message_delete',
   SYSTEM_MESSAGE: 'system_message',
   CONVERSATION_TOUCH: 'conversation_touch',
+  CHAT_PRESENCE_SET: 'chat_presence_set',
   FRIEND_REQUEST: 'friend_request',
   FRIEND_ACCEPT: 'friend_accept',
   FRIEND_DECLINE: 'friend_decline',
@@ -85,6 +86,11 @@ export interface SystemMessageJob {
 
 export interface ConversationTouchJob {
   conversationId: string;
+}
+
+export interface ChatPresenceSetJob {
+  conversationId: string;
+  inChat: boolean;
 }
 
 export interface FriendRequestJob {

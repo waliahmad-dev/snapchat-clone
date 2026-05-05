@@ -2,6 +2,8 @@ import React from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import type { ConversationWithPartner, ConversationStatus } from '../hooks/useConversations';
 import { useAuthStore } from '@features/auth/store/authStore';
 import { useStreak } from '../hooks/useStreak';
@@ -16,7 +18,8 @@ interface Props {
 
 function describeStatus(
   status: ConversationStatus,
-  c: ThemeColors
+  c: ThemeColors,
+  t: TFunction
 ): {
   label: string;
   icon: React.ComponentProps<typeof Ionicons>['name'];
@@ -24,26 +27,27 @@ function describeStatus(
 } {
   switch (status) {
     case 'sent':
-      return { label: 'Sent', icon: 'send', color: '#00C2FF' };
+      return { label: t('chat.row.sent'), icon: 'send', color: '#00C2FF' };
     case 'opened':
-      return { label: 'Opened', icon: 'checkmark-done', color: c.textMuted };
+      return { label: t('chat.row.opened'), icon: 'checkmark-done', color: c.textMuted };
     case 'replied':
-      return { label: 'Replied', icon: 'return-down-back', color: '#B14CFF' };
+      return { label: t('chat.row.replied'), icon: 'return-down-back', color: '#B14CFF' };
     case 'received':
-      return { label: 'Sent you a Message', icon: 'chatbubble', color: '#00C2FF' };
+      return { label: t('chat.row.sentYouMessage'), icon: 'chatbubble', color: '#00C2FF' };
     case 'empty':
     default:
-      return { label: 'Say hi!', icon: 'hand-right', color: '#FFC300' };
+      return { label: t('chat.row.sayHi'), icon: 'hand-right', color: '#FFC300' };
   }
 }
 
 export function ConversationRow({ conversation }: Props) {
   const router = useRouter();
+  const { t } = useTranslation();
   const c = useThemeColors();
   const profile = useAuthStore((s) => s.profile);
   const streak = useStreak(profile?.id ?? '', conversation.partner.id);
 
-  const { label, icon, color } = describeStatus(conversation.status, c);
+  const { label, icon, color } = describeStatus(conversation.status, c, t);
   const timeLabel = shortTimeAgo(conversation.lastActivityAt);
 
   return (
@@ -90,7 +94,7 @@ export function ConversationRow({ conversation }: Props) {
               className="ml-2 h-[18px] min-w-[18px] items-center justify-center rounded-full px-1.5"
               style={{ backgroundColor: c.danger }}>
               <Text className="text-[10px] font-bold" style={{ color: '#FFFFFF' }}>
-                Wali {conversation.unread_count > 99 ? '99+' : conversation.unread_count}
+                {conversation.unread_count > 99 ? '99+' : conversation.unread_count}
               </Text>
             </View>
           )}

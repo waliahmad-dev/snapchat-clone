@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { TextInput, Alert, Text } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@features/auth/store/authStore';
 import { updateEmail } from '@features/auth/utils/accountActions';
 import { EditFieldScreen, useStyledInput } from '@features/settings/components/EditFieldScreen';
@@ -10,6 +11,7 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function EditEmailScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const currentEmail = useAuthStore((s) => s.user?.email ?? '');
   const s = useStyledInput();
   const c = useThemeColors();
@@ -28,14 +30,14 @@ export default function EditEmailScreen() {
     try {
       await updateEmail(password, trimmedEmail);
       Alert.alert(
-        'Confirm your email',
-        'A confirmation link has been sent to your new email address. Your email will update once you confirm.',
-        [{ text: 'OK', onPress: () => router.back() }]
+        t('settings.account.email.confirmTitle'),
+        t('settings.account.email.confirmBody'),
+        [{ text: t('common.ok'), onPress: () => router.back() }]
       );
     } catch (err) {
       Alert.alert(
-        'Could not change email',
-        err instanceof Error ? err.message : 'Please try again.'
+        t('settings.account.email.errorTitle'),
+        err instanceof Error ? err.message : t('settings.account.common.tryAgain')
       );
     } finally {
       setSaving(false);
@@ -44,16 +46,16 @@ export default function EditEmailScreen() {
 
   return (
     <EditFieldScreen
-      title="Email"
-      description={`Enter your new email and password to confirm.`}
+      title={t('settings.account.email.title')}
+      description={t('settings.account.email.description')}
       onSave={save}
       saveDisabled={!canSave}
       saving={saving}>
-      <Text style={s.label}>New email</Text>
+      <Text style={s.label}>{t('settings.account.email.newEmailLabel')}</Text>
       <TextInput
         value={email}
         onChangeText={setEmail}
-        placeholder="you@example.com"
+        placeholder={t('settings.account.email.emailPlaceholder')}
         placeholderTextColor={c.placeholder}
         keyboardType="email-address"
         autoCapitalize="none"
@@ -61,13 +63,15 @@ export default function EditEmailScreen() {
         autoFocus
         style={s.input}
       />
-      {!emailOk && email.length > 0 && <Text style={s.error}>Enter a valid email address.</Text>}
+      {!emailOk && email.length > 0 && (
+        <Text style={s.error}>{t('settings.account.email.emailInvalid')}</Text>
+      )}
 
-      <Text style={s.label}>Current password</Text>
+      <Text style={s.label}>{t('settings.account.email.passwordLabel')}</Text>
       <TextInput
         value={password}
         onChangeText={setPassword}
-        placeholder="••••••••"
+        placeholder={t('settings.account.email.passwordPlaceholder')}
         placeholderTextColor={c.placeholder}
         secureTextEntry
         style={s.input}

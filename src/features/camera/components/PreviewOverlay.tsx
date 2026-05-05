@@ -27,6 +27,7 @@ import {
   type SkPath,
 } from '@shopify/react-native-skia';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { RecipientSelector } from './RecipientSelector';
 import { useMemoryUpload } from '@features/memories/hooks/useMemoryUpload';
 import { useCameraStore, type CameraFacing } from '../store/cameraStore';
@@ -66,6 +67,7 @@ export function PreviewOverlay({
   drawingLayer,
   topLayer,
 }: Props) {
+  const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
   const [sendingDirect, setSendingDirect] = useState(false);
@@ -175,7 +177,10 @@ export function PreviewOverlay({
         });
         reset();
       } catch (err) {
-        Alert.alert('Could not send', err instanceof Error ? err.message : 'Please try again.');
+        Alert.alert(
+          t('camera.preview.couldNotSendTitle'),
+          err instanceof Error ? err.message : t('common.tryAgain'),
+        );
       } finally {
         setSendingDirect(false);
       }
@@ -191,8 +196,8 @@ export function PreviewOverlay({
       const { granted } = await requestMediaPermission();
       if (!granted) {
         Alert.alert(
-          'Permission required',
-          'Allow photo library access so we can save snaps to your gallery.'
+          t('camera.preview.permissionRequiredTitle'),
+          t('camera.preview.permissionRequiredBody'),
         );
         return;
       }
@@ -206,7 +211,7 @@ export function PreviewOverlay({
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setJustSaved(true);
     } catch {
-      Alert.alert('Could not save', 'Please try again.');
+      Alert.alert(t('camera.preview.couldNotSaveTitle'), t('common.tryAgain'));
     } finally {
       setSaving(false);
     }
@@ -271,7 +276,7 @@ export function PreviewOverlay({
             hitSlop={12}
             className="rounded-full bg-white px-5 py-2"
             style={{ marginRight: 8 }}>
-            <Text className="text-base font-bold text-black">Done</Text>
+            <Text className="text-base font-bold text-black">{t('common.done')}</Text>
           </Pressable>
         ) : (
           <Pressable
@@ -307,8 +312,10 @@ export function PreviewOverlay({
             <>
               <Text className="text-base font-bold text-black" numberOfLines={1}>
                 {directRecipient
-                  ? `Send to ${directRecipient.displayName.split(' ')[0]}`
-                  : 'Send To'}
+                  ? t('camera.preview.sendToFriend', {
+                      name: directRecipient.displayName.split(' ')[0],
+                    })
+                  : t('camera.preview.sendTo')}
               </Text>
               <Ionicons name="chevron-forward" size={18} color="#000" />
             </>

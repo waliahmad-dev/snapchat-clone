@@ -1,12 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useNetworkStore } from '@lib/offline/networkStore';
 import { usePendingCount } from '@lib/offline/usePendingCount';
 import { useThemeColors } from '@lib/theme/useThemeColors';
 
 export function OfflineBanner() {
   const c = useThemeColors();
+  const { t } = useTranslation();
   const isOnline = useNetworkStore((s) => s.isOnline);
   const pending = usePendingCount();
   const [visible, setVisible] = useState(false);
@@ -40,9 +42,9 @@ export function OfflineBanner() {
   const fg = offlineMode ? '#FFFFFF' : c.accentText;
   const label = offlineMode
     ? pending > 0
-      ? `Offline · ${pending} item${pending === 1 ? '' : 's'} waiting`
-      : 'Offline · changes will sync when reconnected'
-    : `Syncing ${pending} item${pending === 1 ? '' : 's'}…`;
+      ? t('common.offlineWaiting', { count: pending })
+      : t('common.offlineNoItems')
+    : t('common.syncingItems', { count: pending });
 
   return (
     <Animated.View

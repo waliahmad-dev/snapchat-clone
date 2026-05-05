@@ -1,16 +1,17 @@
+import i18n from '@lib/i18n';
 import type { DbMessage, MessageType } from '@/types/database';
 
 export function formatMessagePreview(message: DbMessage | null): string {
   if (!message) return '';
-  if (message.deleted_at) return 'Message deleted';
+  if (message.deleted_at) return i18n.t('chat.preview.deleted');
 
   switch (message.type as MessageType) {
     case 'snap':
-      return '📷 Snap';
+      return i18n.t('chat.preview.snap');
     case 'media':
-      return '🖼 Photo';
+      return i18n.t('chat.preview.photo');
     case 'system':
-      return message.content ?? 'System event';
+      return message.content ?? i18n.t('chat.preview.systemEvent');
     case 'text':
     default:
       return message.content ?? '';
@@ -35,10 +36,10 @@ export function relativeTime(isoString: string): string {
   const then = new Date(isoString).getTime();
   const diff = Math.floor((now - then) / 1000);
 
-  if (diff < 60) return 'just now';
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  return `${Math.floor(diff / 86400)}d ago`;
+  if (diff < 60) return i18n.t('chat.time.justNow');
+  if (diff < 3600) return i18n.t('chat.time.minutesAgo', { count: Math.floor(diff / 60) });
+  if (diff < 86400) return i18n.t('chat.time.hoursAgo', { count: Math.floor(diff / 3600) });
+  return i18n.t('chat.time.daysAgo', { count: Math.floor(diff / 86400) });
 }
 
 
@@ -47,12 +48,12 @@ export function shortTimeAgo(isoString: string | null | undefined): string {
   const then = new Date(isoString).getTime();
   if (!Number.isFinite(then)) return '';
   const diffSec = Math.floor((Date.now() - then) / 1000);
-  if (diffSec < 60) return 'now';
+  if (diffSec < 60) return i18n.t('chat.time.now');
   const diffMin = Math.floor(diffSec / 60);
-  if (diffMin < 60) return `${diffMin}m`;
+  if (diffMin < 60) return i18n.t('chat.time.minutes', { count: diffMin });
   const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return `${diffHr}h`;
+  if (diffHr < 24) return i18n.t('chat.time.hours', { count: diffHr });
   const diffDay = Math.floor(diffHr / 24);
-  if (diffDay < 7) return `${diffDay}d`;
-  return `${Math.floor(diffDay / 7)}w`;
+  if (diffDay < 7) return i18n.t('chat.time.days', { count: diffDay });
+  return i18n.t('chat.time.weeks', { count: Math.floor(diffDay / 7) });
 }

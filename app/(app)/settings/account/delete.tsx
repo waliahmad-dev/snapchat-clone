@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { TextInput, Alert, View, Text } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@features/auth/store/authStore';
 import { deleteAccount } from '@features/auth/utils/accountActions';
 import { EditFieldScreen, useStyledInput } from '@features/settings/components/EditFieldScreen';
 import { useThemeColors } from '@lib/theme/useThemeColors';
 
-const CONFIRM_PHRASE = 'DELETE';
-
 export default function DeleteAccountScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const username = useAuthStore((s) => s.profile?.username ?? '');
   const s = useStyledInput();
   const c = useThemeColors();
@@ -17,17 +17,19 @@ export default function DeleteAccountScreen() {
   const [confirm, setConfirm] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const canSave = password.length > 0 && confirm.trim().toUpperCase() === CONFIRM_PHRASE;
+  const confirmPhrase = t('settings.account.delete.confirmPhrase');
+  const canSave =
+    password.length > 0 && confirm.trim().toUpperCase() === confirmPhrase.toUpperCase();
 
   async function onSave() {
     if (!canSave) return;
     Alert.alert(
-      'Delete account?',
-      'This will permanently delete your account, snaps, stories, memories and chats. This cannot be undone.',
+      t('settings.account.delete.alertTitle'),
+      t('settings.account.delete.alertBody'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete forever',
+          text: t('settings.account.delete.deleteForever'),
           style: 'destructive',
           onPress: async () => {
             setSaving(true);
@@ -36,8 +38,8 @@ export default function DeleteAccountScreen() {
               router.replace('/');
             } catch (err) {
               Alert.alert(
-                'Could not delete account',
-                err instanceof Error ? err.message : 'Please try again.',
+                t('settings.account.delete.errorTitle'),
+                err instanceof Error ? err.message : t('settings.account.common.tryAgain'),
               );
               setSaving(false);
             }
@@ -49,10 +51,12 @@ export default function DeleteAccountScreen() {
 
   return (
     <EditFieldScreen
-      title="Delete Account"
-      description={`This will permanently delete @${username || 'your account'} and all associated data. This action cannot be undone.`}
+      title={t('settings.account.delete.title')}
+      description={t('settings.account.delete.description', {
+        username: username || t('settings.account.delete.descriptionFallback'),
+      })}
       onSave={onSave}
-      saveLabel="Delete"
+      saveLabel={t('settings.account.delete.saveLabel')}
       saveDanger
       saveDisabled={!canSave}
       saving={saving}>
@@ -64,31 +68,30 @@ export default function DeleteAccountScreen() {
           marginBottom: 6,
         }}>
         <Text style={{ color: c.danger, fontWeight: '700', marginBottom: 4 }}>
-          You will lose:
+          {t('settings.account.delete.willLose')}
         </Text>
         <Text style={{ color: c.textPrimary, fontSize: 13, lineHeight: 19 }}>
-          • Your profile, name and username (the username will become available to others){'\n'}
-          • All snaps, stories and memories{'\n'}
-          • All chats and friend connections{'\n'}
-          • Your snap score
+          {t('settings.account.delete.lossList')}
         </Text>
       </View>
 
-      <Text style={s.label}>Current password</Text>
+      <Text style={s.label}>{t('settings.account.delete.passwordLabel')}</Text>
       <TextInput
         value={password}
         onChangeText={setPassword}
-        placeholder="••••••••"
+        placeholder={t('settings.account.delete.passwordPlaceholder')}
         placeholderTextColor={c.placeholder}
         secureTextEntry
         style={s.input}
       />
 
-      <Text style={s.label}>Type {CONFIRM_PHRASE} to confirm</Text>
+      <Text style={s.label}>
+        {t('settings.account.delete.confirmLabel', { phrase: confirmPhrase })}
+      </Text>
       <TextInput
         value={confirm}
         onChangeText={setConfirm}
-        placeholder={CONFIRM_PHRASE}
+        placeholder={confirmPhrase}
         placeholderTextColor={c.placeholder}
         autoCapitalize="characters"
         autoCorrect={false}

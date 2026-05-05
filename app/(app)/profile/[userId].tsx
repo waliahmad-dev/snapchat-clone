@@ -13,6 +13,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from 'react-i18next';
 import { useProfile } from '@features/profile/hooks/useProfile';
 import { useFriendRequest } from '@features/friends/hooks/useFriendRequest';
 import { Avatar } from '@components/ui/Avatar';
@@ -24,6 +25,7 @@ const HERO_BG_URL = 'https://picsum.photos/seed/snapclone-profile-bg/1080/1440';
 
 export default function UserProfileScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const c = useThemeColors();
   const styles = useStyles(c);
   const { userId } = useLocalSearchParams<{ userId: string }>();
@@ -67,7 +69,7 @@ export default function UserProfileScreen() {
       await sendRequest(userId);
       setSent(true);
     } catch (err: any) {
-      Alert.alert('Error', err.message);
+      Alert.alert(t('common.error'), err.message);
     } finally {
       setActionLoading(false);
     }
@@ -81,7 +83,7 @@ export default function UserProfileScreen() {
       await acceptRequest(friendshipId);
       setFriendshipStatus('accepted');
     } catch (err: any) {
-      Alert.alert('Could not accept', err.message ?? 'Please try again.');
+      Alert.alert(t('profile.user.couldNotAccept'), err.message ?? t('common.tryAgain'));
     } finally {
       setActionLoading(false);
     }
@@ -97,7 +99,7 @@ export default function UserProfileScreen() {
       setISentRequest(false);
       router.back();
     } catch (err: any) {
-      Alert.alert('Could not decline', err.message ?? 'Please try again.');
+      Alert.alert(t('profile.user.couldNotDecline'), err.message ?? t('common.tryAgain'));
     } finally {
       setActionLoading(false);
     }
@@ -107,12 +109,12 @@ export default function UserProfileScreen() {
     if (!profile || !friendshipId) return;
     const handle = profile.username ? `@${profile.username}` : profile.display_name;
     Alert.alert(
-      `Unfriend ${handle}?`,
-      'All of your messages, snaps, and shared media will be cleared. They can still find you in search.',
+      t('profile.user.unfriendTitle', { handle }),
+      t('profile.user.unfriendBody'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Unfriend',
+          text: t('profile.user.unfriend'),
           style: 'destructive',
           onPress: async () => {
             setActionLoading(true);
@@ -123,7 +125,7 @@ export default function UserProfileScreen() {
               setFriendshipId(null);
               router.back();
             } catch (err: any) {
-              Alert.alert('Could not unfriend', err.message ?? 'Please try again.');
+              Alert.alert(t('profile.user.couldNotUnfriend'), err.message ?? t('common.tryAgain'));
             } finally {
               setActionLoading(false);
             }
@@ -137,12 +139,12 @@ export default function UserProfileScreen() {
     if (!profile || !currentUser) return;
     const handle = profile.username ? `@${profile.username}` : profile.display_name;
     Alert.alert(
-      `Block ${handle}?`,
-      'Your friendship will end and all messages, snaps, shared media, and your streak will be cleared. Neither of you will be able to find or contact each other until you unblock.',
+      t('profile.user.blockTitle', { handle }),
+      t('profile.user.blockBody'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Block',
+          text: t('profile.user.block'),
           style: 'destructive',
           onPress: async () => {
             setActionLoading(true);
@@ -152,7 +154,7 @@ export default function UserProfileScreen() {
 
               router.replace('/(app)/chat');
             } catch (err: any) {
-              Alert.alert('Could not block', err.message ?? 'Please try again.');
+              Alert.alert(t('profile.user.couldNotBlock'), err.message ?? t('common.tryAgain'));
             } finally {
               setActionLoading(false);
             }
@@ -177,11 +179,8 @@ export default function UserProfileScreen() {
           <View style={[styles.emptyIcon, { backgroundColor: c.iconCircleBg }]}>
             <Ionicons name="person-remove-outline" size={28} color={c.textMuted} />
           </View>
-          <Text style={styles.emptyTitle}>User not available</Text>
-          <Text style={styles.emptyBody}>
-            This account can&apos;t be viewed. They may have blocked you, or you may have blocked
-            them.
-          </Text>
+          <Text style={styles.emptyTitle}>{t('profile.user.unavailableTitle')}</Text>
+          <Text style={styles.emptyBody}>{t('profile.user.unavailableBody')}</Text>
         </View>
       </View>
     );
@@ -223,7 +222,7 @@ export default function UserProfileScreen() {
 
             <View style={styles.tabRow}>
               <View style={[styles.tabPill, styles.tabPillActive]}>
-                <Text style={styles.tabPillTextActive}>Profile</Text>
+                <Text style={styles.tabPillTextActive}>{t('profile.user.tabProfile')}</Text>
               </View>
             </View>
           </View>
@@ -263,7 +262,7 @@ export default function UserProfileScreen() {
               {actionLoading ? (
                 <ActivityIndicator color={c.textPrimary} size="small" />
               ) : (
-                <Text style={[styles.primaryBtnText, { color: c.textPrimary }]}>✓ Friends</Text>
+                <Text style={[styles.primaryBtnText, { color: c.textPrimary }]}>{t('profile.user.friendsCheck')}</Text>
               )}
             </Pressable>
           ) : isIncomingRequest ? (
@@ -276,12 +275,12 @@ export default function UserProfileScreen() {
                 <Pressable
                   onPress={handleDecline}
                   style={[styles.requestBtn, { backgroundColor: c.surfaceElevated }]}>
-                  <Text style={[styles.primaryBtnText, { color: c.textPrimary }]}>Decline</Text>
+                  <Text style={[styles.primaryBtnText, { color: c.textPrimary }]}>{t('profile.user.decline')}</Text>
                 </Pressable>
                 <Pressable
                   onPress={handleAccept}
                   style={[styles.requestBtn, { backgroundColor: c.accent }]}>
-                  <Text style={[styles.primaryBtnText, { color: c.accentText }]}>Accept</Text>
+                  <Text style={[styles.primaryBtnText, { color: c.accentText }]}>{t('profile.user.accept')}</Text>
                 </Pressable>
               </View>
             )
@@ -301,7 +300,7 @@ export default function UserProfileScreen() {
                     styles.primaryBtnText,
                     { color: isPending ? c.textMuted : c.accentText },
                   ]}>
-                  {isPending ? 'Pending' : 'Add Friend'}
+                  {isPending ? t('profile.user.pending') : t('profile.user.addFriend')}
                 </Text>
               )}
             </Pressable>
@@ -311,7 +310,7 @@ export default function UserProfileScreen() {
             onPress={handleBlock}
             style={[styles.secondaryBtn, { backgroundColor: c.surfaceElevated }]}>
             <Ionicons name="ban-outline" size={16} color={c.danger} />
-            <Text style={[styles.secondaryBtnText, { color: c.danger }]}>Block</Text>
+            <Text style={[styles.secondaryBtnText, { color: c.danger }]}>{t('profile.user.block')}</Text>
           </Pressable>
         </View>
       </ScrollView>

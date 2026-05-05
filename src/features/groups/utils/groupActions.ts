@@ -7,6 +7,7 @@ import GroupMessageView from '@lib/watermelondb/models/GroupMessageView';
 import { enqueueJob } from '@lib/offline/outboxRunner';
 import { JOB } from '@lib/offline/jobs';
 import { uuid } from '@lib/offline/uuid';
+import i18n from '@lib/i18n';
 
 export async function renameGroup(groupId: string, name: string | null): Promise<void> {
   const cleaned = name?.trim() || null;
@@ -83,7 +84,10 @@ export async function addMembersToGroup(
       groupKey: `group-add:${membershipId}`,
     });
 
-    const sysContent = `${myName} added ${newMemberNames[userId] ?? 'someone'}`;
+    const sysContent = i18n.t('chat.group.system.addedMember', {
+      name: myName,
+      member: newMemberNames[userId] ?? i18n.t('common.someone'),
+    });
     const sysId = uuid();
     await database.write(async () => {
       await database.get<GroupMessage>('group_messages').create((m) => {
@@ -115,7 +119,7 @@ export async function leaveGroup(
   myName: string,
   membershipId: string
 ): Promise<void> {
-  const sysContent = `${myName} left the group`;
+  const sysContent = i18n.t('chat.group.system.leftGroup', { name: myName });
   const sysId = uuid();
 
   // Post system event first so other members see it.

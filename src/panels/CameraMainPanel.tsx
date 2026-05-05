@@ -12,6 +12,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from 'react-i18next';
 import { CameraViewComponent } from '@features/camera/components/CameraViewComponent';
 import { SkiaCanvas } from '@features/camera/components/SkiaCanvas';
 import { DrawingToolbar } from '@features/camera/components/DrawingToolbar';
@@ -37,6 +38,7 @@ type ZoomPreset = 'half' | 'one' | 'five';
 
 export function CameraMainPanel() {
   const router = useRouter();
+  const { t } = useTranslation();
   const requestCount = useFriendRequestCount();
   const { cameraRef, hasPermission, requestPermission, takePicture } = useCamera();
   const facing = useCameraStore((s) => s.facing);
@@ -96,10 +98,10 @@ export function CameraMainPanel() {
   }, [captureState, takePicture, setCapturedUri, setCaptureState]);
 
   const handleDiscard = useCallback(() => {
-    Alert.alert('Discard Snap?', 'Your snap will not be saved.', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('camera.panel.discardTitle'), t('camera.panel.discardBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Discard',
+        text: t('camera.panel.discard'),
         style: 'destructive',
         onPress: () => {
           reset();
@@ -107,7 +109,7 @@ export function CameraMainPanel() {
         },
       },
     ]);
-  }, [reset, clearDrawing]);
+  }, [reset, clearDrawing, t]);
 
   const handleEnterEdit = useCallback(() => {
     setDrawingMode(true);
@@ -196,12 +198,12 @@ export function CameraMainPanel() {
       <View className="flex-1 bg-black items-center justify-center px-8">
         <Ionicons name="camera-outline" size={56} color="#FFFC00" />
         <Text className="text-white text-base text-center mt-4 mb-6">
-          Camera access is required to take snaps.
+          {t('camera.panel.permissionRequired')}
         </Text>
         <Pressable
           onPress={requestPermission}
           className="bg-snap-yellow rounded-full px-8 py-3">
-          <Text className="text-black font-bold">Allow Camera</Text>
+          <Text className="text-black font-bold">{t('camera.panel.allowCamera')}</Text>
         </Pressable>
       </View>
     );
@@ -323,7 +325,7 @@ export function CameraMainPanel() {
 
           <View style={styles.swipeUpHint} pointerEvents="none">
             <Ionicons name="chevron-up" size={20} color="rgba(255,255,255,0.6)" />
-            <Text className="text-white/60 text-xs">Memories</Text>
+            <Text className="text-white/60 text-xs">{t('camera.panel.memoriesHint')}</Text>
           </View>
         </>
       )}

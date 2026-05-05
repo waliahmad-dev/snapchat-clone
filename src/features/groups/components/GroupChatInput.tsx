@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from 'react-i18next';
 import { useReplyStore } from '@features/chat/store/replyStore';
 import { Avatar } from '@components/ui/Avatar';
 import { useThemeColors } from '@lib/theme/useThemeColors';
@@ -29,6 +30,7 @@ interface Props {
 
 export function GroupChatInput({ onSend, onCameraPress, members }: Props) {
   const c = useThemeColors();
+  const { t } = useTranslation();
   const inputRef = useRef<TextInput>(null);
   const [text, setText] = useState('');
   const [selection, setSelection] = useState<{ start: number; end: number }>({
@@ -165,7 +167,11 @@ export function GroupChatInput({ onSend, onCameraPress, members }: Props) {
           ref={inputRef}
           className="flex-1 rounded-full px-4 py-2 text-base"
           style={{ backgroundColor: c.inputBg, color: c.textPrimary }}
-          placeholder={replyTarget ? `Reply to ${replyTarget.authorName}…` : 'Send to group…'}
+          placeholder={
+            replyTarget
+              ? t('chat.group.input.replyPlaceholder', { name: replyTarget.authorName })
+              : t('chat.group.input.sendPlaceholder')
+          }
           placeholderTextColor={c.placeholder}
           value={text}
           onChangeText={setText}

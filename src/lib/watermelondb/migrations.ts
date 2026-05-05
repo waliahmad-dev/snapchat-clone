@@ -107,5 +107,14 @@ export const migrations = schemaMigrations({
         }),
       ],
     },
+    {
+      toVersion: 6,
+      steps: [
+        addColumns({
+          table: 'messages',
+          columns: [{ name: 'hidden_locally', type: 'boolean' }],
+        }),
+      ],
+    },
   ],
 });

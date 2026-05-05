@@ -3,6 +3,7 @@ import { View, Text, Pressable, Image, Alert, StyleSheet } from 'react-native';
 import { formatDistanceToNow } from 'date-fns/formatDistanceToNow';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import type { DbMessage } from '@/types/database';
 import { supabase } from '@lib/supabase/client';
 import { getSignedUrl } from '@lib/supabase/storage';
@@ -44,6 +45,7 @@ function SnapBubble({
   onPostSystem,
 }: Props) {
   const c = useThemeColors();
+  const { t } = useTranslation();
   const [viewerOpen, setViewerOpen] = useState(false);
   const [signedFull, setSignedFull] = useState<string | null>(null);
   const [signedThumb, setSignedThumb] = useState<string | null>(null);
@@ -102,12 +104,12 @@ function SnapBubble({
 
   function saveInViewer() {
     onSetSaved(message.id, true);
-    onPostSystem(`${authorName} saved a snap`);
+    onPostSystem(t('chat.savedSnap', { name: authorName }));
   }
 
   function unsaveInViewer() {
     onSetSaved(message.id, false);
-    onPostSystem(`${authorName} unsaved a snap`);
+    onPostSystem(t('chat.unsavedSnap', { name: authorName }));
   }
 
   function startReply() {
@@ -122,21 +124,21 @@ function SnapBubble({
   function handleLongPress() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (isOwn) {
-      Alert.alert('Delete snap?', 'Both of you will see that you deleted it.', [
-        { text: 'Cancel', style: 'cancel' },
+      Alert.alert(t('chat.deleteSnapTitle'), t('chat.deleteSnapBody'), [
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: () => {
             onDelete(message.id);
-            onPostSystem(`${authorName} deleted a snap`);
+            onPostSystem(t('chat.group.bubble.deletedSnap', { name: authorName }));
           },
         },
       ]);
     } else {
-      Alert.alert('Reply to snap?', '', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Reply', onPress: startReply },
+      Alert.alert(t('chat.replyToSnapTitle'), '', [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('common.reply'), onPress: startReply },
       ]);
     }
   }
@@ -171,7 +173,7 @@ function SnapBubble({
                     fontSize: 10,
                     marginLeft: 4,
                   }}>
-                  SAVED
+                  {t('chat.savedBadge')}
                 </Text>
               </View>
             </Pressable>
@@ -196,8 +198,12 @@ function SnapBubble({
   const canTap = canOpen();
   const bannerStyle = isOwn ? { backgroundColor: '#B14CFF' } : { backgroundColor: '#FF3B30' };
   const label = isOwn
-    ? alreadyViewed ? 'Opened' : 'Delivered'
-    : alreadyViewed ? 'Opened' : 'New Snap — Tap to open';
+    ? alreadyViewed
+      ? t('chat.row.opened')
+      : t('chat.row.delivered')
+    : alreadyViewed
+      ? t('chat.row.opened')
+      : t('chat.snap.newSnap');
 
   return (
     <>
@@ -246,6 +252,7 @@ function TextBubble({
   onPostSystem,
 }: Props) {
   const c = useThemeColors();
+  const { t } = useTranslation();
   const isSaved = !!message.saved;
   const setReplyTarget = useReplyStore((s) => s.setTarget);
   const [quoted, setQuoted] = useState<DbMessage | null>(null);
@@ -278,17 +285,17 @@ function TextBubble({
     Haptics.selectionAsync();
     if (isSaved) {
       onSetSaved(message.id, false);
-      onPostSystem(`${authorName} unsaved a message`);
+      onPostSystem(t('chat.unsavedMessage', { name: authorName }));
     } else {
       onSetSaved(message.id, true);
-      onPostSystem(`${authorName} saved a message`);
+      onPostSystem(t('chat.savedMessage', { name: authorName }));
     }
   }
 
   function startReply() {
     setReplyTarget({
       messageId: message.id,
-      preview: (message.content ?? '').slice(0, 80) || 'Message',
+      preview: (message.content ?? '').slice(0, 80) || t('common.message'),
       authorName,
       isSnap: false,
     });
@@ -297,21 +304,21 @@ function TextBubble({
   function handleLongPress() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (isOwn) {
-      Alert.alert('Delete message?', 'Both of you will see it was deleted.', [
-        { text: 'Cancel', style: 'cancel' },
+      Alert.alert(t('chat.deleteMessageTitle'), t('chat.deleteMessageBody'), [
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: () => {
             onDelete(message.id);
-            onPostSystem(`${authorName} deleted a message`);
+            onPostSystem(t('chat.unsavedMessage', { name: authorName }));
           },
         },
       ]);
     } else {
-      Alert.alert('Reply to this message?', '', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Reply', onPress: startReply },
+      Alert.alert(t('chat.replyToMessageTitle'), '', [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('common.reply'), onPress: startReply },
       ]);
     }
   }
@@ -354,7 +361,7 @@ function TextBubble({
                   fontWeight: '700',
                   color: isOwn ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.6)',
                 }}>
-                {quoted.type === 'snap' ? '📸 Snap' : 'Replying to'}
+                {quoted.type === 'snap' ? t('chat.preview.snap') : t('chat.conversation.replyingTo', { name: authorName })}
               </Text>
               <Text
                 style={{
@@ -362,7 +369,7 @@ function TextBubble({
                   color: isOwn ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.8)',
                 }}
                 numberOfLines={2}>
-                {quoted.content ?? (quoted.type === 'snap' ? 'Snap' : 'Message')}
+                {quoted.content ?? (quoted.type === 'snap' ? t('chat.preview.snap') : '')}
               </Text>
             </View>
           )}
@@ -377,7 +384,7 @@ function TextBubble({
                   fontWeight: '700',
                   marginLeft: 4,
                 }}>
-                SAVED
+                {t('chat.savedBadge')}
               </Text>
             </View>
           )}

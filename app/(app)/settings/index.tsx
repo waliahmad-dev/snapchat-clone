@@ -3,30 +3,34 @@ import { View, Text, Pressable, ScrollView, Alert, StyleSheet } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { signOut } from '@features/auth/utils/authHelpers';
 import { useAuthStore } from '@features/auth/store/authStore';
 import { useThemeColors, type ThemeColors } from '@lib/theme/useThemeColors';
 import { useThemeStore, type ThemeMode } from '@lib/theme/themeStore';
+import { useLocale, LANGUAGE_LABEL } from '@lib/i18n/useLocale';
 import { formatBirthday } from '@features/profile/utils/horoscope';
-
-const THEME_MODE_LABEL: Record<ThemeMode, string> = {
-  system: 'System',
-  light: 'Light',
-  dark: 'Dark',
-};
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const profile = useAuthStore((s) => s.profile);
   const user = useAuthStore((s) => s.user);
   const themeMode = useThemeStore((s) => s.mode);
+  const { locale } = useLocale();
   const c = useThemeColors();
   const styles = useStyles(c);
 
+  const themeModeLabel: Record<ThemeMode, string> = {
+    system: t('settings.appearance.systemLabel'),
+    light: t('settings.appearance.lightLabel'),
+    dark: t('settings.appearance.darkLabel'),
+  };
+
   async function handleSignOut() {
-    Alert.alert('Log out', 'Are you sure you want to log out?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Log out', style: 'destructive', onPress: signOut },
+    Alert.alert(t('settings.index.logoutConfirmTitle'), t('settings.index.logoutConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('settings.index.logout'), style: 'destructive', onPress: signOut },
     ]);
   }
 
@@ -37,16 +41,16 @@ export default function SettingsScreen() {
           <Pressable onPress={() => router.back()} hitSlop={10} style={styles.headerBtn}>
             <Ionicons name="chevron-back" size={26} color={c.textPrimary} />
           </Pressable>
-          <Text style={styles.headerTitle}>Settings</Text>
+          <Text style={styles.headerTitle}>{t('settings.index.title')}</Text>
           <View style={styles.headerBtn} />
         </View>
       </SafeAreaView>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 48, paddingTop: 8 }}>
-        <Section title="My Account" colors={c}>
+        <Section title={t('settings.index.myAccount')} colors={c}>
           <Row
             icon="person-outline"
-            label="Name"
+            label={t('settings.index.name')}
             value={profile?.display_name}
             onPress={() => router.push('/(app)/settings/account/name')}
             colors={c}
@@ -54,7 +58,7 @@ export default function SettingsScreen() {
           <Divider colors={c} />
           <Row
             icon="at-outline"
-            label="Username"
+            label={t('settings.index.username')}
             value={profile?.username}
             onPress={() => router.push('/(app)/settings/account/username')}
             colors={c}
@@ -62,69 +66,83 @@ export default function SettingsScreen() {
           <Divider colors={c} />
           <Row
             icon="gift-outline"
-            label="Birthday"
-            value={formatBirthday(profile?.date_of_birth ?? null) ?? 'Not set'}
+            label={t('settings.index.birthday')}
+            value={formatBirthday(profile?.date_of_birth ?? null) ?? t('settings.index.notSet')}
             onPress={() => router.push('/(app)/settings/account/birthday')}
             colors={c}
           />
           <Divider colors={c} />
           <Row
             icon="call-outline"
-            label="Mobile Number"
-            value={profile?.phone ?? 'Not set'}
+            label={t('settings.index.mobile')}
+            value={profile?.phone ?? t('settings.index.notSet')}
             onPress={() => router.push('/(app)/settings/account/phone')}
             colors={c}
           />
           <Divider colors={c} />
           <Row
             icon="mail-outline"
-            label="Email"
+            label={t('settings.index.email')}
             value={user?.email ?? undefined}
             onPress={() => router.push('/(app)/settings/account/email')}
             colors={c}
           />
         </Section>
 
-        <Section title="Preferences" colors={c}>
+        <Section title={t('settings.index.preferences')} colors={c}>
           <Row
             icon="contrast-outline"
-            label="Appearance"
-            value={THEME_MODE_LABEL[themeMode]}
+            label={t('settings.index.appearance')}
+            value={themeModeLabel[themeMode]}
             onPress={() => router.push('/(app)/settings/appearance')}
+            colors={c}
+          />
+          <Divider colors={c} />
+          <Row
+            icon="language-outline"
+            label={t('settings.index.language')}
+            value={LANGUAGE_LABEL[locale]}
+            onPress={() => router.push('/(app)/settings/language')}
             colors={c}
           />
         </Section>
 
-        <Section title="Privacy" colors={c}>
+        <Section title={t('settings.index.privacy')} colors={c}>
           <Row
             icon="ban-outline"
-            label="Blocked Users"
+            label={t('settings.index.blockedUsers')}
             onPress={() => router.push('/(app)/settings/blocked')}
             colors={c}
           />
         </Section>
 
-        <Section title="Login & Security" colors={c}>
+        <Section title={t('settings.index.loginSecurity')} colors={c}>
           <Row
             icon="key-outline"
-            label="Password"
+            label={t('settings.index.password')}
             onPress={() => router.push('/(app)/settings/account/password')}
             colors={c}
           />
         </Section>
 
-        <Section title="Account Deletion" colors={c}>
+        <Section title={t('settings.index.accountDeletion')} colors={c}>
           <Row
             icon="trash-outline"
-            label="Delete My Account"
+            label={t('settings.index.deleteMyAccount')}
             onPress={() => router.push('/(app)/settings/account/delete')}
             colors={c}
             danger
           />
         </Section>
 
-        <Section title="Logout" colors={c}>
-          <Row icon="log-out-outline" label="Log Out" onPress={handleSignOut} colors={c} danger />
+        <Section title={t('settings.index.logoutSection')} colors={c}>
+          <Row
+            icon="log-out-outline"
+            label={t('settings.index.logout')}
+            onPress={handleSignOut}
+            colors={c}
+            danger
+          />
         </Section>
       </ScrollView>
     </View>

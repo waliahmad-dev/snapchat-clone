@@ -1,6 +1,6 @@
 import 'react-native-url-polyfill/auto';
 import React, { useEffect } from 'react';
-import { Appearance } from 'react-native';
+import { Appearance, View } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppProviders } from '@providers/AppProviders';
@@ -10,6 +10,7 @@ import { useAppState } from '@hooks/useAppState';
 import { useMemoriesBootstrap } from '@features/memories/lib/memoriesBootstrap';
 import { useThemeColors } from '@lib/theme/useThemeColors';
 import { useThemeStore } from '@lib/theme/themeStore';
+import { useLocaleStore } from '@lib/i18n/localeStore';
 // import { OfflineBanner } from '@components/OfflineBanner';
 import '../global.css';
 
@@ -53,22 +54,47 @@ function ThemeBootstrap() {
   return null;
 }
 
+function LocaleBootstrap() {
+  const hydrate = useLocaleStore((s) => s.hydrate);
+
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
+
+  return null;
+}
+
 function ThemedStatusBar() {
   const c = useThemeColors();
   return <StatusBar style={c.scheme === 'light' ? 'dark' : 'light'} />;
+}
+
+function RootStack() {
+  const c = useThemeColors();
+  const themeHydrated = useThemeStore((s) => s.hydrated);
+  const localeHydrated = useLocaleStore((s) => s.hydrated);
+
+  if (!themeHydrated || !localeHydrated) {
+    return <View style={{ flex: 1, backgroundColor: c.bg }} />;
+  }
+
+  return (
+    <Stack screenOptions={{ headerShown: false, animation: 'none' }}>
+      <Stack.Screen name="(auth)" />
+      <Stack.Screen name="(app)" />
+      <Stack.Screen name="+not-found" />
+    </Stack>
+  );
 }
 
 export default function RootLayout() {
   return (
     <AppProviders>
       <ThemeBootstrap />
+      <LocaleBootstrap />
       <AuthGate />
       <ThemedStatusBar />
-      <Stack screenOptions={{ headerShown: false, animation: 'none' }}>
-        <Stack.Screen name="(auth)" />
-        <Stack.Screen name="(app)" />
-        <Stack.Screen name="+not-found" />
-      </Stack>
+      <RootStack />
       {/* <OfflineBanner /> */}
     </AppProviders>
   );

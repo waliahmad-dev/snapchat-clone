@@ -10,6 +10,7 @@ import {
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useConversations } from '@features/chat/hooks/useConversations';
 import { ConversationRow } from '@features/chat/components/ConversationRow';
 import { useFriends, type FriendWithStatus } from '@features/friends/hooks/useFriends';
@@ -30,6 +31,7 @@ type FeedItem =
 
 export function ChatListPanel() {
   const router = useRouter();
+  const { t } = useTranslation();
   const c = useThemeColors();
   const { conversations, loading: convsLoading, refresh: refreshConvs } = useConversations();
   const { groups, loading: groupsLoading, refresh: refreshGroups } = useGroupChats();
@@ -75,7 +77,7 @@ export function ChatListPanel() {
   return (
     <View className="flex-1" style={{ backgroundColor: c.bg }}>
       <SafeAreaView edges={['top']} style={{ backgroundColor: c.bg }}>
-        <TopBar title="Chat" />
+        <TopBar title={t('chat.panel.title')} />
       </SafeAreaView>
       <BreathingLoader active={loading || refreshing} />
 
@@ -87,10 +89,10 @@ export function ChatListPanel() {
         <View className="flex-1 items-center justify-center px-8">
           <Ionicons name="chatbubbles-outline" size={56} color={c.iconMuted} />
           <Text className="text-lg font-bold mt-4 mb-1" style={{ color: c.textPrimary }}>
-            No chats yet
+            {t('chat.panel.emptyTitle')}
           </Text>
           <Text className="text-sm text-center" style={{ color: c.textSecondary }}>
-            Add friends from your profile to start snapping, or tap “+” to start a group.
+            {t('chat.panel.emptyBodyFull')}
           </Text>
         </View>
       ) : (
@@ -129,7 +131,7 @@ export function ChatListPanel() {
                     <Text
                       className="text-xs font-semibold uppercase tracking-widest"
                       style={{ color: c.textSecondary }}>
-                      New Friends · {freshFriends.length}
+                      {t('chat.panel.newFriendsLabel')} · {freshFriends.length}
                     </Text>
                   </View>
                 )}
@@ -180,6 +182,7 @@ function NewFriendRow({
   onOpen: () => void;
 }) {
   const c = useThemeColors();
+  const { t } = useTranslation();
   return (
     <Pressable
       onPress={onOpen}
@@ -198,7 +201,7 @@ function NewFriendRow({
           className="text-sm font-semibold"
           style={{ color: c.accent }}
           numberOfLines={1}>
-          👋 Say hi to {friend.display_name.split(' ')[0]}!
+          {t('chat.panel.sayHiTo', { name: friend.display_name.split(' ')[0] })}
         </Text>
       </View>
       <View className="w-9 h-9 rounded-full items-center justify-center">

@@ -36,6 +36,38 @@ export async function enqueueJob(args: EnqueueArgs): Promise<string> {
   return id;
 }
 
+/**
+ * Enqueue but first drop any pending (not in-flight) jobs sharing this group
+ * key. Use when only the LATEST intent matters — e.g. chat presence flips,
+ * where a stale in_chat=false would spuriously trigger the server cleanup.
+ */
+export async function enqueueLatestJob(
+  args: EnqueueArgs & { groupKey: string },
+): Promise<string> {
+  let id = '';
+  await database.write(async () => {
+    const stale = await database
+      .get<Outbox>('outbox')
+      .query(Q.where('group_key', args.groupKey), Q.where('status', 'pending'))
+      .fetch();
+    for (const row of stale) await row.destroyPermanently();
+
+    const created = await database.get<Outbox>('outbox').create((row) => {
+      row.kind = args.kind;
+      row.payload = JSON.stringify(args.payload);
+      row.status = 'pending';
+      row.attempts = 0;
+      row.lastError = null;
+      row.createdAt = Date.now();
+      row.nextAttemptAt = Date.now();
+      row.groupKey = args.groupKey;
+    });
+    id = created.id;
+  });
+  void drainOutbox();
+  return id;
+}
+
 function backoffMs(attempts: number): number {
   // 5s, 30s, 2m, 10m, 30m, then 30m cap
   const ladder = [5_000, 30_000, 120_000, 600_000, 1_800_000];

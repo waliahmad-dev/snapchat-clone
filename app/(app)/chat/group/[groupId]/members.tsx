@@ -13,6 +13,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from 'react-i18next';
 import { Avatar } from '@components/ui/Avatar';
 import { useGroupChat } from '@features/groups/hooks/useGroupChat';
 import { useGroupMembers } from '@features/groups/hooks/useGroupMembers';
@@ -24,6 +25,7 @@ import { useThemeColors } from '@lib/theme/useThemeColors';
 
 export default function MembersScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const c = useThemeColors();
   const { groupId } = useLocalSearchParams<{ groupId: string }>();
   const profile = useAuthStore((s) => s.profile);
@@ -46,7 +48,7 @@ export default function MembersScreen() {
         <Text
           className="flex-1 text-center text-base font-bold"
           style={{ color: c.textPrimary }}>
-          Members · {members.length}
+          {t('chat.group.members.title', { count: members.length })}
         </Text>
         <Pressable
           onPress={() => setAdderOpen(true)}
@@ -92,6 +94,7 @@ function AddMembersModal({
   onClose: () => void;
 }) {
   const c = useThemeColors();
+  const { t } = useTranslation();
   const { friends, loading } = useFriends();
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -136,8 +139,8 @@ function AddMembersModal({
       onClose();
     } catch (err) {
       Alert.alert(
-        'Could not add',
-        err instanceof Error ? err.message : 'Please try again.'
+        t('chat.group.members.errorAddTitle'),
+        err instanceof Error ? err.message : t('common.tryAgain'),
       );
     } finally {
       setAdding(false);
@@ -152,11 +155,11 @@ function AddMembersModal({
           style={{ borderColor: c.border }}>
           <Pressable onPress={onClose} hitSlop={8}>
             <Text className="text-base" style={{ color: c.textSecondary }}>
-              Cancel
+              {t('common.cancel')}
             </Text>
           </Pressable>
           <Text className="text-lg font-bold" style={{ color: c.textPrimary }}>
-            Add Members
+            {t('chat.group.members.addTitle')}
           </Text>
           <Pressable onPress={handleAdd} disabled={adding || selected.size === 0} hitSlop={8}>
             {adding ? (
@@ -165,7 +168,9 @@ function AddMembersModal({
               <Text
                 className="text-base font-bold"
                 style={{ color: selected.size > 0 ? c.accent : c.textMuted }}>
-                Add{selected.size > 0 ? ` (${selected.size})` : ''}
+                {selected.size > 0
+                  ? t('chat.group.members.addButtonCount', { count: selected.size })
+                  : t('chat.group.members.addButton')}
               </Text>
             )}
           </Pressable>
@@ -179,7 +184,7 @@ function AddMembersModal({
             <TextInput
               value={query}
               onChangeText={setQuery}
-              placeholder="Search friends"
+              placeholder={t('chat.group.members.searchPlaceholder')}
               placeholderTextColor={c.placeholder}
               className="flex-1 ml-2 text-sm"
               style={{ color: c.textPrimary }}
@@ -195,7 +200,7 @@ function AddMembersModal({
           <View className="flex-1 items-center justify-center px-8">
             <Ionicons name="people-outline" size={48} color={c.iconMuted} />
             <Text className="text-sm text-center mt-3" style={{ color: c.textSecondary }}>
-              All your friends are already in this group.
+              {t('chat.group.members.emptyBody')}
             </Text>
           </View>
         ) : (

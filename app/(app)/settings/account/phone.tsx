@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { TextInput, Alert, Text } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useProfile } from '@features/profile/hooks/useProfile';
 import { PHONE_REGEX, updatePhone } from '@features/auth/utils/accountActions';
 import { useAuthStore } from '@features/auth/store/authStore';
@@ -9,6 +10,7 @@ import { useThemeColors } from '@lib/theme/useThemeColors';
 
 export default function EditPhoneScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { profile, refresh } = useProfile();
   const userId = useAuthStore((s) => s.user?.id ?? '');
   const s = useStyledInput();
@@ -29,7 +31,10 @@ export default function EditPhoneScreen() {
       await refresh();
       router.back();
     } catch (err) {
-      Alert.alert('Could not save', err instanceof Error ? err.message : 'Please try again.');
+      Alert.alert(
+        t('settings.account.common.couldNotSave'),
+        err instanceof Error ? err.message : t('settings.account.common.tryAgain'),
+      );
     } finally {
       setSaving(false);
     }
@@ -37,15 +42,15 @@ export default function EditPhoneScreen() {
 
   return (
     <EditFieldScreen
-      title="Mobile Number"
-      description="Add a number so friends can find you"
+      title={t('settings.account.phone.title')}
+      description={t('settings.account.phone.description')}
       onSave={save}
       saveDisabled={!canSave}
       saving={saving}>
       <TextInput
         value={phone}
         onChangeText={setPhone}
-        placeholder="+1 555 123 4567"
+        placeholder={t('settings.account.phone.placeholder')}
         placeholderTextColor={c.placeholder}
         keyboardType="phone-pad"
         maxLength={16}
@@ -53,7 +58,7 @@ export default function EditPhoneScreen() {
         style={s.input}
       />
       {!formatOk && phone.length > 0 && (
-        <Text style={s.error}>Enter a valid number (digits only, optional leading +).</Text>
+        <Text style={s.error}>{t('settings.account.phone.errorFormat')}</Text>
       )}
     </EditFieldScreen>
   );

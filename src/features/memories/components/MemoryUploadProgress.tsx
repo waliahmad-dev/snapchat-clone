@@ -6,6 +6,7 @@ import Animated, {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 import { useThemeColors } from '@lib/theme/useThemeColors';
 
 interface Props {
@@ -14,6 +15,7 @@ interface Props {
 
 export function MemoryUploadProgress({ pendingCount }: Props) {
   const c = useThemeColors();
+  const { t } = useTranslation();
   const opacity = useSharedValue(1);
 
   useEffect(() => {
@@ -37,7 +39,7 @@ export function MemoryUploadProgress({ pendingCount }: Props) {
         style={{ backgroundColor: c.accent }}
       />
       <Text className="text-xs" style={{ color: c.textPrimary }}>
-        Uploading {pendingCount} {pendingCount === 1 ? 'memory' : 'memories'}…
+        {t('memories.uploadProgress', { count: pendingCount })}
       </Text>
     </Animated.View>
   );

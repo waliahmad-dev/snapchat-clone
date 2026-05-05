@@ -9,6 +9,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { useStories, type StoryGroup } from '@features/stories/hooks/useStories';
 import { StoryViewer } from '@features/stories/components/StoryViewer';
 import { TopBar } from '@components/ui/TopBar';
@@ -18,6 +19,7 @@ import { useThemeColors } from '@lib/theme/useThemeColors';
 
 export function StoriesFeedPanel() {
   const c = useThemeColors();
+  const { t } = useTranslation();
   const { storyGroups, loading, recordView, refresh } = useStories();
   const [activeGroup, setActiveGroup] = useState<StoryGroup | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -34,7 +36,7 @@ export function StoriesFeedPanel() {
   return (
     <View className="flex-1" style={{ backgroundColor: c.bg }}>
       <SafeAreaView edges={['top']} style={{ backgroundColor: c.bg }}>
-        <TopBar title="Stories" />
+        <TopBar title={t('stories.title')} />
       </SafeAreaView>
       <BreathingLoader active={loading || refreshing} />
 
@@ -57,14 +59,14 @@ export function StoriesFeedPanel() {
           }>
           <View className="px-4 pt-4 pb-2">
             <Text className="font-bold text-base" style={{ color: c.textPrimary }}>
-              Friends
+              {t('stories.friends')}
             </Text>
           </View>
 
           {storyGroups.length === 0 ? (
             <View className="py-6 px-8">
               <Text className="text-sm text-center" style={{ color: c.textSecondary }}>
-                Add friends to see their stories here.
+                {t('stories.panelEmptyBody')}
               </Text>
             </View>
           ) : (

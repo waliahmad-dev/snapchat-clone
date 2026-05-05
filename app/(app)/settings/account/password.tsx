@@ -2,20 +2,22 @@ import React, { useMemo, useState } from 'react';
 import { TextInput, Alert, View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { updatePassword, validatePassword } from '@features/auth/utils/accountActions';
 import { EditFieldScreen, useStyledInput } from '@features/settings/components/EditFieldScreen';
 import { useThemeColors } from '@lib/theme/useThemeColors';
 
-const REQUIREMENTS: { label: string; test: (pw: string) => boolean }[] = [
-  { label: 'At least 8 characters', test: (p) => p.length >= 8 },
-  { label: 'One uppercase letter', test: (p) => /[A-Z]/.test(p) },
-  { label: 'One lowercase letter', test: (p) => /[a-z]/.test(p) },
-  { label: 'One number', test: (p) => /[0-9]/.test(p) },
-  { label: 'One symbol', test: (p) => /[^A-Za-z0-9]/.test(p) },
+const REQUIREMENTS: { key: string; test: (pw: string) => boolean }[] = [
+  { key: 'settings.account.password.req8chars', test: (p) => p.length >= 8 },
+  { key: 'settings.account.password.reqUpper', test: (p) => /[A-Z]/.test(p) },
+  { key: 'settings.account.password.reqLower', test: (p) => /[a-z]/.test(p) },
+  { key: 'settings.account.password.reqNumber', test: (p) => /[0-9]/.test(p) },
+  { key: 'settings.account.password.reqSymbol', test: (p) => /[^A-Za-z0-9]/.test(p) },
 ];
 
 export default function EditPasswordScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const s = useStyledInput();
   const c = useThemeColors();
   const [current, setCurrent] = useState('');
@@ -32,13 +34,15 @@ export default function EditPasswordScreen() {
     setSaving(true);
     try {
       await updatePassword(current, next);
-      Alert.alert('Password changed', 'Your password has been updated.', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      Alert.alert(
+        t('settings.account.password.successTitle'),
+        t('settings.account.password.successBody'),
+        [{ text: t('common.ok'), onPress: () => router.back() }],
+      );
     } catch (err) {
       Alert.alert(
-        'Could not change password',
-        err instanceof Error ? err.message : 'Please try again.'
+        t('settings.account.password.errorTitle'),
+        err instanceof Error ? err.message : t('settings.account.common.tryAgain'),
       );
     } finally {
       setSaving(false);
@@ -46,23 +50,27 @@ export default function EditPasswordScreen() {
   }
 
   return (
-    <EditFieldScreen title="Password" onSave={save} saveDisabled={!canSave} saving={saving}>
-      <Text style={s.label}>Current password</Text>
+    <EditFieldScreen
+      title={t('settings.account.password.title')}
+      onSave={save}
+      saveDisabled={!canSave}
+      saving={saving}>
+      <Text style={s.label}>{t('settings.account.password.currentLabel')}</Text>
       <TextInput
         value={current}
         onChangeText={setCurrent}
-        placeholder="••••••••"
+        placeholder={t('settings.account.password.placeholder')}
         placeholderTextColor={c.placeholder}
         secureTextEntry
         autoFocus
         style={s.input}
       />
 
-      <Text style={s.label}>New password</Text>
+      <Text style={s.label}>{t('settings.account.password.newLabel')}</Text>
       <TextInput
         value={next}
         onChangeText={setNext}
-        placeholder="••••••••"
+        placeholder={t('settings.account.password.placeholder')}
         placeholderTextColor={c.placeholder}
         secureTextEntry
         style={s.input}
@@ -72,30 +80,32 @@ export default function EditPasswordScreen() {
         {REQUIREMENTS.map((r) => {
           const ok = r.test(next);
           return (
-            <View key={r.label} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View key={r.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Ionicons
                 name={ok ? 'checkmark-circle' : 'ellipse-outline'}
                 size={14}
                 color={ok ? '#22C55E' : c.textMuted}
               />
               <Text style={{ color: ok ? c.textPrimary : c.textSecondary, fontSize: 13 }}>
-                {r.label}
+                {t(r.key)}
               </Text>
             </View>
           );
         })}
       </View>
 
-      <Text style={s.label}>Confirm new password</Text>
+      <Text style={s.label}>{t('settings.account.password.confirmLabel')}</Text>
       <TextInput
         value={confirm}
         onChangeText={setConfirm}
-        placeholder="••••••••"
+        placeholder={t('settings.account.password.placeholder')}
         placeholderTextColor={c.placeholder}
         secureTextEntry
         style={s.input}
       />
-      {confirm.length > 0 && !matches && <Text style={s.error}>Passwords don't match.</Text>}
+      {confirm.length > 0 && !matches && (
+        <Text style={s.error}>{t('settings.account.password.mismatch')}</Text>
+      )}
     </EditFieldScreen>
   );
 }

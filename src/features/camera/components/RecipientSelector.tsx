@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@features/auth/store/authStore';
 import { useCameraStore } from '../store/cameraStore';
 import { sendSnapToRecipients } from '../utils/sendSnap';
@@ -33,6 +34,7 @@ interface RecipientSection {
 }
 
 export function RecipientSelector({ imageUri, onClose }: Props) {
+  const { t } = useTranslation();
   const [selectedFriends, setSelectedFriends] = useState<Set<string>>(new Set());
   const [selectedGroups, setSelectedGroups] = useState<Set<string>>(new Set());
   const [sendToStory, setSendToStory] = useState(false);
@@ -47,18 +49,18 @@ export function RecipientSelector({ imageUri, onClose }: Props) {
     const out: RecipientSection[] = [];
     if (groups.length > 0) {
       out.push({
-        title: 'Groups',
+        title: t('camera.recipients.groups'),
         data: groups.map((g) => ({ kind: 'group', group: g }) as SectionItem),
       });
     }
     if (friends.length > 0) {
       out.push({
-        title: 'Friends',
+        title: t('camera.recipients.friends'),
         data: friends.map((u) => ({ kind: 'user', user: u }) as SectionItem),
       });
     }
     return out;
-  }, [groups, friends]);
+  }, [groups, friends, t]);
 
   function toggleFriend(id: string) {
     Haptics.selectionAsync();
@@ -104,8 +106,8 @@ export function RecipientSelector({ imageUri, onClose }: Props) {
     } catch (err) {
       console.error('[Snap send]', err);
       Alert.alert(
-        'Could not send',
-        err instanceof Error ? err.message : 'Please try again.'
+        t('camera.preview.couldNotSendTitle'),
+        err instanceof Error ? err.message : t('common.tryAgain'),
       );
     } finally {
       setSending(false);
@@ -121,16 +123,16 @@ export function RecipientSelector({ imageUri, onClose }: Props) {
       <SafeAreaView className="flex-1 bg-black">
         <View className="flex-row items-center justify-between px-4 py-4 border-b border-white/10">
           <Pressable onPress={onClose}>
-            <Text className="text-snap-yellow text-base">Cancel</Text>
+            <Text className="text-snap-yellow text-base">{t('common.cancel')}</Text>
           </Pressable>
-          <Text className="text-white font-bold text-base">Send To</Text>
+          <Text className="text-white font-bold text-base">{t('camera.recipients.title')}</Text>
           <Pressable onPress={handleSend} disabled={sending || totalSelected === 0}>
             {sending ? (
               <ActivityIndicator color="#FFFC00" />
             ) : (
               <Text
                 className={`font-bold text-base ${totalSelected > 0 ? 'text-snap-yellow' : 'text-white/30'}`}>
-                Send
+                {t('common.send')}
               </Text>
             )}
           </Pressable>
@@ -142,7 +144,7 @@ export function RecipientSelector({ imageUri, onClose }: Props) {
           <View className="w-12 h-12 rounded-full bg-snap-yellow items-center justify-center mr-4">
             <Text className="text-2xl">📖</Text>
           </View>
-          <Text className="text-white font-semibold flex-1">My Story</Text>
+          <Text className="text-white font-semibold flex-1">{t('camera.recipients.myStory')}</Text>
           <View
             className={`w-6 h-6 rounded-full border-2 items-center justify-center ${sendToStory ? 'bg-snap-yellow border-snap-yellow' : 'border-white/40'}`}>
             {sendToStory && <Text className="text-black text-xs">✓</Text>}
@@ -156,7 +158,7 @@ export function RecipientSelector({ imageUri, onClose }: Props) {
         ) : sections.length === 0 ? (
           <View className="flex-1 items-center justify-center px-8">
             <Text className="text-white/50 text-center">
-              Add friends or start a group to send snaps.
+              {t('camera.recipients.emptyBody')}
             </Text>
           </View>
         ) : (
@@ -193,7 +195,7 @@ export function RecipientSelector({ imageUri, onClose }: Props) {
                         {g.name?.trim() || fallbackName}
                       </Text>
                       <Text className="text-snap-gray text-sm">
-                        {g.members.length + 1} members
+                        {t('camera.recipients.memberCount', { count: g.members.length + 1 })}
                       </Text>
                     </View>
                     <View
