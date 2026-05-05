@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
+import { useTranslation } from 'react-i18next';
 import { MemoryCell } from './MemoryCell';
 import type Memory from '@lib/watermelondb/models/Memory';
 import { MEMORIES_GRID_COLUMNS } from '@constants/dimensions';
@@ -15,16 +16,17 @@ interface Props {
 
 export function MemoriesGrid({ memories, getUrl, onPress, onLongPress }: Props) {
   const c = useThemeColors();
+  const { t } = useTranslation();
 
   if (memories.length === 0) {
     return (
       <View className="flex-1 items-center justify-center px-8">
         <Text className="text-5xl mb-4">🌟</Text>
         <Text className="text-xl font-bold mb-2" style={{ color: c.textPrimary }}>
-          No memories yet
+          {t('memories.emptyTitle')}
         </Text>
         <Text className="text-center" style={{ color: c.textSecondary }}>
-          Take snaps and save them here. They'll last forever!
+          {t('memories.emptyBody')}
         </Text>
       </View>
     );

@@ -4,6 +4,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { getSignedUrl } from '@lib/supabase/storage';
 import { PulsingLoader } from '@components/ui/PulsingLoader';
 
@@ -28,6 +29,7 @@ export function SnapViewer({
   onSave,
   onUnsave,
 }: Props) {
+  const { t } = useTranslation();
   const [url, setUrl] = useState<string | null>(preloadedUrl ?? null);
   const [imageReady, setImageReady] = useState(false);
   const [loadError, setLoadError] = useState(false);
@@ -83,10 +85,10 @@ export function SnapViewer({
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     if (saved) {
-      Alert.alert('Unsave?', "If you unsave, it'll be removed from the chat.", [
-        { text: 'Cancel', style: 'cancel' },
+      Alert.alert(t('chat.snap.unsaveTitle'), t('chat.snap.unsaveBody'), [
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Unsave',
+          text: t('chat.snap.unsave'),
           style: 'destructive',
           onPress: () => {
             setSaved(false);
@@ -96,10 +98,10 @@ export function SnapViewer({
         },
       ]);
     } else {
-      Alert.alert('Save this snap?', 'Both of you will see that it was saved.', [
-        { text: 'Cancel', style: 'cancel' },
+      Alert.alert(t('chat.snap.saveInChatTitle'), t('chat.snap.saveInChatBody'), [
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Save in chat',
+          text: t('chat.snap.saveInChat'),
           onPress: () => {
             setSaved(true);
             onSave();
@@ -129,12 +131,12 @@ export function SnapViewer({
             />
           )}
 
-          {showLoader && <PulsingLoader label="Loading snap…" />}
+          {showLoader && <PulsingLoader label={t('chat.snap.loading')} />}
 
           {loadError && (
             <View style={styles.centered}>
               <Ionicons name="alert-circle-outline" size={48} color="#fff" />
-              <Text className="mt-2 text-white">Snap couldn't load</Text>
+              <Text className="mt-2 text-white">{t('chat.snap.couldNotLoad')}</Text>
             </View>
           )}
 
@@ -154,7 +156,7 @@ export function SnapViewer({
               {saved && (
                 <View className="flex-row items-center gap-1 rounded-full bg-black/60 px-3 py-1">
                   <Ionicons name="bookmark" size={14} color="#FFFC00" />
-                  <Text className="text-xs font-bold text-snap-yellow">SAVED</Text>
+                  <Text className="text-xs font-bold text-snap-yellow">{t('chat.savedBadge')}</Text>
                 </View>
               )}
             </View>

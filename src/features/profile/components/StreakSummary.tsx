@@ -1,5 +1,6 @@
 import React, { useEffect, useId, useState } from 'react';
 import { View, Text, ScrollView } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@lib/supabase/client';
 import { getStreak } from '@lib/redis/streak';
 import { useFriends } from '@features/friends/hooks/useFriends';
@@ -15,6 +16,7 @@ interface StreakEntry {
 
 export function StreakSummary() {
   const c = useThemeColors();
+  const { t } = useTranslation();
   const profile = useAuthStore((s) => s.profile);
   const { friends } = useFriends();
   const instanceId = useId();
@@ -65,7 +67,7 @@ export function StreakSummary() {
       <Text
         className="text-xs font-semibold uppercase tracking-wide mb-2"
         style={{ color: c.textSecondary }}>
-        Active Streaks
+        {t('profile.activeStreaks')}
       </Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} className="gap-3">
         {streaks.map((s) => (

@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { TextInput, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useProfile } from '@features/profile/hooks/useProfile';
 import { EditFieldScreen, useStyledInput } from '@features/settings/components/EditFieldScreen';
 import { useThemeColors } from '@lib/theme/useThemeColors';
 
 export default function EditNameScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const c = useThemeColors();
   const { profile, updateProfile } = useProfile();
   const s = useStyledInput();
@@ -24,7 +26,10 @@ export default function EditNameScreen() {
       await updateProfile({ display_name: trimmed });
       router.back();
     } catch (err) {
-      Alert.alert('Could not save', err instanceof Error ? err.message : 'Please try again.');
+      Alert.alert(
+        t('settings.account.common.couldNotSave'),
+        err instanceof Error ? err.message : t('settings.account.common.tryAgain'),
+      );
     } finally {
       setSaving(false);
     }
@@ -32,15 +37,15 @@ export default function EditNameScreen() {
 
   return (
     <EditFieldScreen
-      title="Name"
-      description="Your name is shown to friends. It can be changed at any time."
+      title={t('settings.account.name.title')}
+      description={t('settings.account.name.description')}
       onSave={save}
       saveDisabled={!valid || !dirty}
       saving={saving}>
       <TextInput
         value={name}
         onChangeText={setName}
-        placeholder="Your name"
+        placeholder={t('settings.account.name.placeholder')}
         placeholderTextColor={c.placeholder}
         maxLength={50}
         autoFocus

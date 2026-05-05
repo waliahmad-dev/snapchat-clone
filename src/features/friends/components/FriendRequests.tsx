@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, FlatList, Pressable, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { Avatar } from '@components/ui/Avatar';
 import { useFriendRequest } from '../hooks/useFriendRequest';
 import { useThemeColors } from '@lib/theme/useThemeColors';
@@ -22,6 +23,7 @@ function RequestItem({
   onDeclined?: () => void;
 }) {
   const c = useThemeColors();
+  const { t } = useTranslation();
   const { acceptRequest, declineRequest } = useFriendRequest();
   const [loading, setLoading] = React.useState(false);
 
@@ -74,7 +76,7 @@ function RequestItem({
             className="rounded-full px-4 py-2"
             style={{ backgroundColor: c.accent }}>
             <Text className="text-xs font-bold" style={{ color: c.accentText }}>
-              Accept
+              {t('search.accept')}
             </Text>
           </Pressable>
         </View>
@@ -85,6 +87,7 @@ function RequestItem({
 
 export function FriendRequests({ requests, onAccepted, onDeclined }: Props) {
   const c = useThemeColors();
+  const { t } = useTranslation();
   if (requests.length === 0) return null;
 
   return (
@@ -93,7 +96,7 @@ export function FriendRequests({ requests, onAccepted, onDeclined }: Props) {
         <Text
           className="text-xs font-semibold uppercase tracking-widest"
           style={{ color: c.textSecondary }}>
-          Friend Requests · {requests.length}
+          {t('search.friendRequestsLabel')} · {requests.length}
         </Text>
       </View>
       <FlatList

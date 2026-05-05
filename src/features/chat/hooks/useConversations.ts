@@ -41,7 +41,7 @@ export function useConversations() {
         .subscribe((rows) => setConversations(rows)),
       database
         .get<Message>('messages')
-        .query(Q.where('deleted_at', null))
+        .query(Q.where('deleted_at', null), Q.where('hidden_locally', Q.notEq(true)))
         .observe()
         .subscribe((rows) => setMessages(rows)),
       database

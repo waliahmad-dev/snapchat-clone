@@ -1,12 +1,14 @@
-import React, { useEffect, useId, useState } from 'react';
-import { View, Text, FlatList, Pressable, ActivityIndicator } from 'react-native';
+import React, { useEffect, useId, useRef, useState } from 'react';
+import { View, Text, FlatList, Pressable, ActivityIndicator, AppState } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Q } from '@nozbe/watermelondb';
+import { useTranslation } from 'react-i18next';
 import { useMessages } from '@features/chat/hooks/useMessages';
 import { useScreenshotDetection } from '@features/chat/hooks/useScreenshotDetection';
 import { useStreak } from '@features/chat/hooks/useStreak';
+import { setChatPresence } from '@features/chat/utils/chatPresence';
 import { MessageBubble } from '@features/chat/components/MessageBubble';
 import { ChatInput } from '@features/chat/components/ChatInput';
 import { SnapSequencePlayer } from '@features/chat/components/SnapSequencePlayer';
@@ -22,6 +24,7 @@ import type { DbUser } from '@/types/database';
 
 export default function ConversationScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const c = useThemeColors();
   const params = useLocalSearchParams<{
     conversationId: string;
@@ -40,7 +43,7 @@ export default function ConversationScreen() {
     setMessageSaved,
     postSystemMessage,
     markAllReceivedAsViewed,
-    cleanupViewedTextOnLeave,
+    hideViewedReceivedOnLeave,
   } = useMessages(params.conversationId);
   const streak = useStreak(profile?.id ?? '', params.friendId);
 
@@ -132,11 +135,48 @@ export default function ConversationScreen() {
     markAllReceivedAsViewed();
   }, [markAllReceivedAsViewed]);
 
+  // Presence + local-hide lifecycle for the unsaved-chat spec:
+  //   - Mount / foreground while screen is active = "in chat"
+  //   - Unmount / backgrounding             = "out of chat"
+  // The leave path also locally hides any unsaved received messages the user
+  // already viewed, so they disappear from this device's view immediately.
+  // The server cleanup of message rows is driven by a Postgres trigger on
+  // chat_presence — it only fires once *both* participants are out, so the
+  // sender never sees content vanish while they're still active.
+  const presenceUserId = profile?.id;
+  const presenceConversationId = params.conversationId;
+  const presenceActiveRef = useRef(false);
   useEffect(() => {
+    if (!presenceUserId || !presenceConversationId) return;
+
+    setChatPresence(presenceConversationId, presenceUserId, true);
+    presenceActiveRef.current = true;
+
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        if (!presenceActiveRef.current) {
+          setChatPresence(presenceConversationId, presenceUserId, true);
+          presenceActiveRef.current = true;
+        }
+      } else if (state === 'background' && presenceActiveRef.current) {
+        // Treat backgrounding (not transient 'inactive' from a notification
+        // pull / control center) as leaving, so a force-quit from the app
+        // switcher doesn't strand presence as in_chat=true on the server.
+        void hideViewedReceivedOnLeave();
+        setChatPresence(presenceConversationId, presenceUserId, false);
+        presenceActiveRef.current = false;
+      }
+    });
+
     return () => {
-      cleanupViewedTextOnLeave();
+      sub.remove();
+      void hideViewedReceivedOnLeave();
+      if (presenceActiveRef.current) {
+        setChatPresence(presenceConversationId, presenceUserId, false);
+        presenceActiveRef.current = false;
+      }
     };
-  }, [cleanupViewedTextOnLeave]);
+  }, [presenceUserId, presenceConversationId, hideViewedReceivedOnLeave]);
 
   useEffect(() => {
     return () => useReplyStore.getState().clear();
@@ -192,7 +232,7 @@ export default function ConversationScreen() {
           onPress={() => {
             useCameraStore.getState().setDirectRecipient({
               id: params.friendId,
-              displayName: params.friendName ?? 'Friend',
+              displayName: params.friendName ?? t('common.friend'),
             });
             router.push('/(app)/camera');
           }}
@@ -210,10 +250,10 @@ export default function ConversationScreen() {
         <View className="flex-1 items-center justify-center px-8 py-12">
           <Text className="mb-3 text-5xl">👋</Text>
           <Text className="mb-1 text-lg font-bold" style={{ color: c.textPrimary }}>
-            You&apos;re now friends with {params.friendName}!
+            {t('chat.conversation.newFriendTitle', { name: params.friendName })}
           </Text>
           <Text className="text-center text-sm" style={{ color: c.textSecondary }}>
-            Say hi with a wave — send your first snap or message.
+            {t('chat.conversation.newFriendBody')}
           </Text>
         </View>
       ) : (
@@ -225,8 +265,8 @@ export default function ConversationScreen() {
           renderItem={({ item }) => {
             const isOwn = item.sender_id === profile.id;
             const authorName = isOwn
-              ? (profile.display_name ?? 'You')
-              : (params.friendName ?? 'They');
+              ? (profile.display_name ?? t('common.you'))
+              : (params.friendName ?? t('common.they'));
             return (
               <MessageBubble
                 message={item}
@@ -245,7 +285,7 @@ export default function ConversationScreen() {
       {playerOpen && snapQueue.length > 0 && (
         <SnapSequencePlayer
           messageIds={snapQueue}
-          myName={profile.display_name ?? 'You'}
+          myName={profile.display_name ?? t('common.you')}
           conversationId={params.conversationId}
           onFinish={() => setPlayerOpen(false)}
         />

@@ -10,12 +10,17 @@ import {
   Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@lib/supabase/client';
 import { useThemeColors } from '@lib/theme/useThemeColors';
+import { LanguagePill } from '@components/ui/LanguagePill';
 
 export default function VerifyScreen() {
   const router = useRouter();
   const c = useThemeColors();
+  const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { email } = useLocalSearchParams<{ email: string }>();
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -32,7 +37,7 @@ export default function VerifyScreen() {
       if (error) throw error;
       router.replace('/(app)/camera');
     } catch (err: any) {
-      Alert.alert('Verification failed', err.message);
+      Alert.alert(t('auth.verify.failedTitle'), err.message);
     } finally {
       setLoading(false);
     }
@@ -40,7 +45,7 @@ export default function VerifyScreen() {
 
   async function handleResend() {
     const { error } = await supabase.auth.resend({ type: 'signup', email });
-    if (!error) Alert.alert('Code sent', `A new code was sent to ${email}`);
+    if (!error) Alert.alert(t('auth.verify.codeSentTitle'), t('auth.verify.codeSent', { email }));
   }
 
   const submitDisabled = code.length < 6;
@@ -50,6 +55,9 @@ export default function VerifyScreen() {
       className="flex-1"
       style={{ backgroundColor: c.bg }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <View style={{ position: 'absolute', top: insets.top + 8, right: 16, zIndex: 10 }}>
+        <LanguagePill />
+      </View>
       <View className="flex-1 justify-center px-8">
         <Text className="text-5xl text-center mb-3" style={{ color: c.accent }}>
           📬
@@ -57,10 +65,10 @@ export default function VerifyScreen() {
         <Text
           className="font-bold text-2xl text-center mb-2"
           style={{ color: c.textPrimary }}>
-          Check your email
+          {t('auth.verify.title')}
         </Text>
         <Text className="text-center mb-8" style={{ color: c.textSecondary }}>
-          We sent a 6-digit code to{' '}
+          {t('auth.verify.subtitle')}{' '}
           <Text className="font-medium" style={{ color: c.textPrimary }}>
             {email}
           </Text>
@@ -87,16 +95,16 @@ export default function VerifyScreen() {
             <ActivityIndicator color={c.accentText} />
           ) : (
             <Text className="font-bold text-lg" style={{ color: c.accentText }}>
-              Verify
+              {t('auth.verify.submit')}
             </Text>
           )}
         </Pressable>
 
         <Pressable onPress={handleResend} className="items-center">
           <Text className="text-sm" style={{ color: c.textSecondary }}>
-            Didn't get it?{' '}
+            {t('auth.verify.resendPrompt')}{' '}
             <Text className="font-semibold" style={{ color: c.accent }}>
-              Resend code
+              {t('auth.verify.resend')}
             </Text>
           </Text>
         </Pressable>

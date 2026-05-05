@@ -8,6 +8,7 @@ import Animated, {
   Extrapolation,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { useTranslation } from 'react-i18next';
 import { SCREEN_HEIGHT } from '@constants/dimensions';
 import { useRouter } from 'expo-router';
 
@@ -20,6 +21,7 @@ interface Props {
 
 export function MemoriesSheetProvider({ children }: Props) {
   const router = useRouter();
+  const { t } = useTranslation();
   const translateY = useSharedValue(0);
   const isOpen = useSharedValue(false);
 
@@ -77,7 +79,7 @@ export function MemoriesSheetProvider({ children }: Props) {
                 translateY.value = withSpring(0, SPRING_CONFIG);
                 router.push('/(app)/memories');
               }}>
-              <Text className="text-white text-base">Open Memories</Text>
+              <Text className="text-white text-base">{t('memories.open')}</Text>
             </Pressable>
           </View>
         </Animated.View>

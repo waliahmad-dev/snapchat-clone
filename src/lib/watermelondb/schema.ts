@@ -1,7 +1,7 @@
 import { appSchema, tableSchema } from '@nozbe/watermelondb';
 
 export const schema = appSchema({
-  version: 5,
+  version: 6,
   tables: [
     tableSchema({
       name: 'conversations',
@@ -32,6 +32,7 @@ export const schema = appSchema({
         { name: 'deleted_at', type: 'number', isOptional: true },
         { name: 'is_optimistic', type: 'boolean' },
         { name: 'reply_to_message_id', type: 'string', isOptional: true },
+        { name: 'hidden_locally', type: 'boolean' },
       ],
     }),
     tableSchema({

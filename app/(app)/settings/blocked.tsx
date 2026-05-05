@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@lib/supabase/client';
 import { Avatar } from '@components/ui/Avatar';
 import { useAuthStore } from '@features/auth/store/authStore';
@@ -23,6 +24,7 @@ interface BlockedEntry extends DbUser {
 
 export default function BlockedUsersScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const c = useThemeColors();
   const styles = useStyles(c);
   const profile = useAuthStore((s) => s.profile);
@@ -61,12 +63,12 @@ export default function BlockedUsersScreen() {
 
   function unblock(blockId: string, name: string) {
     Alert.alert(
-      `Unblock ${name}?`,
-      'They will be discoverable in search again, but no friendship, messages, or streak will be restored. You both have to add each other and start fresh.',
+      t('settings.blocked.unblockTitle', { name }),
+      t('settings.blocked.unblockBody'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Unblock',
+          text: t('settings.blocked.unblock'),
           onPress: async () => {
             await supabase.from('blocks').delete().eq('id', blockId);
             setBlocked((prev) => prev.filter((u) => u.blockId !== blockId));
@@ -83,7 +85,7 @@ export default function BlockedUsersScreen() {
           <Pressable onPress={() => router.back()} hitSlop={10} style={styles.headerBtn}>
             <Ionicons name="chevron-back" size={26} color={c.textPrimary} />
           </Pressable>
-          <Text style={styles.headerTitle}>Blocked</Text>
+          <Text style={styles.headerTitle}>{t('settings.blocked.title')}</Text>
           <View style={styles.headerBtn} />
         </View>
       </SafeAreaView>
@@ -97,10 +99,8 @@ export default function BlockedUsersScreen() {
           <View style={[styles.emptyIcon, { backgroundColor: c.iconCircleBg }]}>
             <Ionicons name="ban-outline" size={28} color={c.textMuted} />
           </View>
-          <Text style={styles.emptyTitle}>No blocked users</Text>
-          <Text style={styles.emptyBody}>
-            People you block won&apos;t be able to find you in search or contact you.
-          </Text>
+          <Text style={styles.emptyTitle}>{t('settings.blocked.emptyTitle')}</Text>
+          <Text style={styles.emptyBody}>{t('settings.blocked.emptyBody')}</Text>
         </View>
       ) : (
         <FlatList
@@ -108,7 +108,9 @@ export default function BlockedUsersScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingTop: 12, paddingBottom: 48 }}
           ListHeaderComponent={
-            <Text style={styles.sectionLabel}>Blocked ({blocked.length})</Text>
+            <Text style={styles.sectionLabel}>
+              {t('settings.blocked.sectionLabel', { count: blocked.length })}
+            </Text>
           }
           renderItem={({ item, index }) => (
             <View
@@ -136,7 +138,7 @@ export default function BlockedUsersScreen() {
                 onPress={() => unblock(item.blockId, item.display_name)}
                 android_ripple={{ color: c.rowPress }}
                 style={[styles.unblockBtn, { backgroundColor: c.iconCircleBg }]}>
-                <Text style={styles.unblockText}>Unblock</Text>
+                <Text style={styles.unblockText}>{t('settings.blocked.unblock')}</Text>
               </Pressable>
             </View>
           )}

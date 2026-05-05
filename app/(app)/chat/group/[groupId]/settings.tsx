@@ -3,6 +3,7 @@ import { View, Text, Pressable, ScrollView, TextInput, Alert } from 'react-nativ
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useGroupChat } from '@features/groups/hooks/useGroupChat';
 import { useGroupMembers } from '@features/groups/hooks/useGroupMembers';
 import { useGroupNotificationSetting } from '@features/groups/hooks/useGroupNotificationSetting';
@@ -15,6 +16,7 @@ import type { GroupNotificationsSetting } from '@/types/database';
 
 export default function GroupSettingsScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const c = useThemeColors();
   const { groupId } = useLocalSearchParams<{ groupId: string }>();
   const profile = useAuthStore((s) => s.profile);
@@ -29,7 +31,7 @@ export default function GroupSettingsScreen() {
   if (!group || !profile) {
     return (
       <SafeAreaView className="flex-1" style={{ backgroundColor: c.bg }}>
-        <Header title="Group Info" onBack={() => router.back()} />
+        <Header title={t('chat.group.settings.title')} onBack={() => router.back()} />
       </SafeAreaView>
     );
   }
@@ -51,10 +53,10 @@ export default function GroupSettingsScreen() {
 
   async function handleLeave() {
     if (!myMembership || !profile) return;
-    Alert.alert('Leave group?', 'Others will be notified you left.', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('chat.group.settings.leaveTitle'), t('chat.group.settings.leaveBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Leave',
+        text: t('common.leave'),
         style: 'destructive',
         onPress: async () => {
           await leaveGroup(groupId, profile.id, profile.display_name, myMembership.membershipId);
@@ -67,7 +69,7 @@ export default function GroupSettingsScreen() {
 
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor: c.bg }} edges={['top']}>
-      <Header title="Group Info" onBack={() => router.back()} />
+      <Header title={t('chat.group.settings.title')} onBack={() => router.back()} />
 
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
         <View className="items-center pb-4 pt-6">
@@ -84,7 +86,7 @@ export default function GroupSettingsScreen() {
                 onBlur={commitRename}
                 onSubmitEditing={commitRename}
                 autoFocus
-                placeholder="Group name"
+                placeholder={t('chat.group.settings.namePlaceholder')}
                 placeholderTextColor={c.placeholder}
                 maxLength={50}
                 className="rounded-xl px-4 py-3 text-center text-base"
@@ -105,16 +107,16 @@ export default function GroupSettingsScreen() {
             </Pressable>
           )}
           <Text className="mt-1 text-sm" style={{ color: c.textSecondary }}>
-            {members.length} {members.length === 1 ? 'member' : 'members'}
+            {t('chat.group.index.memberCount', { count: members.length })}
           </Text>
         </View>
 
-        <SectionLabel c={c}>Notifications</SectionLabel>
+        <SectionLabel c={c}>{t('chat.group.settings.notifications')}</SectionLabel>
         <View className="mx-4 overflow-hidden rounded-2xl" style={{ backgroundColor: c.surface }}>
           <NotificationOption
             value="all"
-            label="All messages"
-            sub="Get notified for every message"
+            label={t('chat.group.settings.notifyAll')}
+            sub={t('chat.group.settings.notifyAllSub')}
             selected={myMembership?.notifications}
             onSelect={setNotifications}
             c={c}
@@ -122,8 +124,8 @@ export default function GroupSettingsScreen() {
           <View className="ml-4 h-px" style={{ backgroundColor: c.divider }} />
           <NotificationOption
             value="mentions"
-            label="Mentions only"
-            sub="Get notified only when @-mentioned"
+            label={t('chat.group.settings.notifyMentions')}
+            sub={t('chat.group.settings.notifyMentionsSub')}
             selected={myMembership?.notifications}
             onSelect={setNotifications}
             c={c}
@@ -131,15 +133,15 @@ export default function GroupSettingsScreen() {
           <View className="ml-4 h-px" style={{ backgroundColor: c.divider }} />
           <NotificationOption
             value="none"
-            label="Mute"
-            sub="Silence all notifications"
+            label={t('chat.group.settings.notifyMute')}
+            sub={t('chat.group.settings.notifyMuteSub')}
             selected={myMembership?.notifications}
             onSelect={setNotifications}
             c={c}
           />
         </View>
 
-        <SectionLabel c={c}>Members</SectionLabel>
+        <SectionLabel c={c}>{t('chat.group.settings.members')}</SectionLabel>
         <View className="mx-4 overflow-hidden rounded-2xl" style={{ backgroundColor: c.surface }}>
           {members.slice(0, 4).map((m, i) => (
             <View key={m.membershipId}>
@@ -149,7 +151,7 @@ export default function GroupSettingsScreen() {
                 <View className="ml-3 flex-1">
                   <Text className="text-base font-semibold" style={{ color: c.textPrimary }}>
                     {m.user.display_name}
-                    {m.isMe ? ' (You)' : ''}
+                    {m.isMe ? t('chat.group.memberRow.youSuffix') : ''}
                   </Text>
                 </View>
               </View>
@@ -165,12 +167,12 @@ export default function GroupSettingsScreen() {
             }
             className="px-4 py-4">
             <Text className="font-semibold" style={{ color: c.accent }}>
-              See all members & add
+              {t('chat.group.settings.seeAllMembers')}
             </Text>
           </Pressable>
         </View>
 
-        <SectionLabel c={c}>Danger zone</SectionLabel>
+        <SectionLabel c={c}>{t('chat.group.settings.dangerZone')}</SectionLabel>
         <View className="mx-4 overflow-hidden rounded-2xl" style={{ backgroundColor: c.surface }}>
           <Pressable
             onPress={handleLeave}
@@ -178,7 +180,7 @@ export default function GroupSettingsScreen() {
             className="flex-row items-center px-4 py-4">
             <Ionicons name="exit-outline" size={20} color={c.danger} />
             <Text className="ml-3 text-base font-semibold" style={{ color: c.danger }}>
-              Leave group
+              {t('chat.group.settings.leaveGroup')}
             </Text>
           </Pressable>
         </View>

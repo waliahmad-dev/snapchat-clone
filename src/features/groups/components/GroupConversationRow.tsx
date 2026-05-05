@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { GroupAvatar } from './GroupAvatar';
 import { shortTimeAgo } from '@features/chat/utils/messageHelpers';
 import { useThemeColors } from '@lib/theme/useThemeColors';
@@ -13,6 +14,7 @@ interface Props {
 
 export function GroupConversationRow({ group }: Props) {
   const router = useRouter();
+  const { t } = useTranslation();
   const c = useThemeColors();
 
   const fallbackName =
@@ -26,7 +28,9 @@ export function GroupConversationRow({ group }: Props) {
   const previewColor = group.unreadCount > 0 ? '#00C2FF' : c.textMuted;
   const previewText =
     group.lastMessageText ||
-    (group.members.length === 0 ? 'Just you so far' : 'Say hi to the group!');
+    (group.members.length === 0
+      ? t('chat.group.row.justYou')
+      : t('chat.group.row.sayHi'));
 
   return (
     <Pressable

@@ -3,10 +3,12 @@ import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useThemeColors, type ThemeColors } from '@lib/theme/useThemeColors';
 
 export default function PrivacyScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const c = useThemeColors();
   const styles = useStyles(c);
 
@@ -17,21 +19,21 @@ export default function PrivacyScreen() {
           <Pressable onPress={() => router.back()} hitSlop={10} style={styles.headerBtn}>
             <Ionicons name="chevron-back" size={26} color={c.textPrimary} />
           </Pressable>
-          <Text style={styles.headerTitle}>Privacy</Text>
+          <Text style={styles.headerTitle}>{t('settings.privacy.title')}</Text>
           <View style={styles.headerBtn} />
         </View>
       </SafeAreaView>
 
       <ScrollView contentContainerStyle={{ paddingTop: 8, paddingBottom: 48 }}>
-        <Text style={styles.sectionLabel}>Contact</Text>
+        <Text style={styles.sectionLabel}>{t('settings.privacy.contact')}</Text>
         <View style={styles.group}>
           <View style={styles.row}>
             <View style={[styles.iconCircle, { backgroundColor: c.iconCircleBg }]}>
               <Ionicons name="chatbubble-ellipses-outline" size={18} color={c.textPrimary} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.label}>Who can contact me</Text>
-              <Text style={styles.description}>Friends only</Text>
+              <Text style={styles.label}>{t('settings.privacy.whoCanContact')}</Text>
+              <Text style={styles.description}>{t('settings.privacy.friendsOnly')}</Text>
             </View>
           </View>
           <View style={styles.divider} />
@@ -40,13 +42,13 @@ export default function PrivacyScreen() {
               <Ionicons name="eye-outline" size={18} color={c.textPrimary} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.label}>Who can view my story</Text>
-              <Text style={styles.description}>Friends only</Text>
+              <Text style={styles.label}>{t('settings.privacy.whoCanView')}</Text>
+              <Text style={styles.description}>{t('settings.privacy.friendsOnly')}</Text>
             </View>
           </View>
         </View>
 
-        <Text style={styles.sectionLabel}>Blocking</Text>
+        <Text style={styles.sectionLabel}>{t('settings.privacy.blocking')}</Text>
         <View style={styles.group}>
           <Pressable
             onPress={() => router.push('/(app)/settings/blocked')}
@@ -56,8 +58,8 @@ export default function PrivacyScreen() {
               <Ionicons name="ban-outline" size={18} color={c.textPrimary} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.label}>Blocked Users</Text>
-              <Text style={styles.description}>Manage blocked accounts</Text>
+              <Text style={styles.label}>{t('settings.privacy.blockedUsers')}</Text>
+              <Text style={styles.description}>{t('settings.privacy.manageBlocked')}</Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
           </Pressable>

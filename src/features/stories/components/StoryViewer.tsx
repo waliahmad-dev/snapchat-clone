@@ -20,6 +20,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns/formatDistanceToNow';
+import { useTranslation } from 'react-i18next';
 import { StoryProgressBar } from './StoryProgressBar';
 import { getSignedUrl } from '@lib/supabase/storage';
 import { supabase } from '@lib/supabase/client';
@@ -47,6 +48,7 @@ type ViewerRow = {
 };
 
 export function StoryViewer({ storyGroup, onClose, onRecordView, onStoryDeleted }: Props) {
+  const { t } = useTranslation();
   const profile = useAuthStore((s) => s.profile);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [urlCache, setUrlCache] = useState<Record<string, string>>({});
@@ -181,10 +183,10 @@ export function StoryViewer({ storyGroup, onClose, onRecordView, onStoryDeleted 
   }, [currentIndex]);
 
   async function handleDeleteStory() {
-    Alert.alert('Delete Story?', 'This story will be removed from your profile.', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('stories.viewer.deleteTitle'), t('stories.viewer.deleteBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Delete',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: async () => {
           const { error } = await supabase
@@ -192,7 +194,7 @@ export function StoryViewer({ storyGroup, onClose, onRecordView, onStoryDeleted 
             .delete()
             .eq('id', currentStory.id);
           if (error) {
-            Alert.alert('Could not delete story', error.message);
+            Alert.alert(t('stories.viewer.deleteFailedTitle'), error.message);
             return;
           }
           onStoryDeleted?.();
@@ -283,11 +285,11 @@ export function StoryViewer({ storyGroup, onClose, onRecordView, onStoryDeleted 
           ) : (
             <View style={StyleSheet.absoluteFill} className="bg-snap-surface" />
           )}
-          {!imageReady && !imageError && <PulsingLoader label="Loading story…" />}
+          {!imageReady && !imageError && <PulsingLoader label={t('stories.viewer.loading')} />}
           {imageError && (
             <View style={StyleSheet.absoluteFill} className="items-center justify-center">
               <Ionicons name="alert-circle-outline" size={48} color="#fff" />
-              <Text className="mt-2 text-white">Story couldn't load</Text>
+              <Text className="mt-2 text-white">{t('stories.viewer.loadFailed')}</Text>
             </View>
           )}
         </View>
@@ -369,14 +371,14 @@ export function StoryViewer({ storyGroup, onClose, onRecordView, onStoryDeleted 
         <Animated.View style={[styles.panel, panelStyle]}>
           <View style={styles.panelHandle} />
           <Text className="px-4 pb-3 pt-1 text-base font-bold text-black">
-            Viewed by {viewers.length}
+            {t('stories.viewer.viewedBy', { count: viewers.length })}
           </Text>
 
           {viewersLoading ? (
-            <Text className="py-6 text-center text-sm text-gray-500">Loading viewers…</Text>
+            <Text className="py-6 text-center text-sm text-gray-500">{t('stories.viewer.loadingViewers')}</Text>
           ) : viewers.length === 0 ? (
             <Text className="py-6 text-center text-sm text-gray-500">
-              No one has viewed this yet.
+              {t('stories.viewer.noViewers')}
             </Text>
           ) : (
             <FlatList
@@ -391,7 +393,7 @@ export function StoryViewer({ storyGroup, onClose, onRecordView, onStoryDeleted 
                   />
                   <View className="ml-3 flex-1">
                     <Text className="font-semibold text-black" numberOfLines={1}>
-                      {item.user?.display_name ?? 'Unknown'}
+                      {item.user?.display_name ?? t('common.unknown')}
                     </Text>
                     {item.user?.username && (
                       <Text className="text-xs text-gray-500" numberOfLines={1}>

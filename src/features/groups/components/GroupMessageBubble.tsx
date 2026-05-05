@@ -3,6 +3,7 @@ import { View, Text, Pressable, Image, Alert, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns/formatDistanceToNow';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from 'react-i18next';
 import { Avatar } from '@components/ui/Avatar';
 import { SystemEventBubble } from '@features/chat/components/SystemEventBubble';
 import { SnapViewer } from '@features/chat/components/SnapViewer';
@@ -78,6 +79,7 @@ function TextBubble({
   onPostSystem,
 }: Props) {
   const c = useThemeColors();
+  const { t } = useTranslation();
   const isSaved = message.saved_by.length > 0;
   const setReplyTarget = useReplyStore((s) => s.setTarget);
   const [quoted, setQuoted] = useState<DbGroupMessage | null>(null);
@@ -110,17 +112,17 @@ function TextBubble({
     Haptics.selectionAsync();
     if (isSaved) {
       onSetSaved(message.id, false);
-      onPostSystem(`${authorName} unsaved a message`);
+      onPostSystem(t('chat.unsavedMessage', { name: authorName }));
     } else {
       onSetSaved(message.id, true);
-      onPostSystem(`${authorName} saved a message`);
+      onPostSystem(t('chat.savedMessage', { name: authorName }));
     }
   }
 
   function startReply() {
     setReplyTarget({
       messageId: message.id,
-      preview: (message.content ?? '').slice(0, 80) || 'Message',
+      preview: (message.content ?? '').slice(0, 80) || t('common.message'),
       authorName,
       isSnap: false,
     });
@@ -129,21 +131,21 @@ function TextBubble({
   function handleLongPress() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (isOwn) {
-      Alert.alert('Delete message?', 'Members will see it was deleted.', [
-        { text: 'Cancel', style: 'cancel' },
+      Alert.alert(t('chat.deleteMessageTitle'), t('chat.group.bubble.deleteMessageBody'), [
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: () => {
             onDelete(message.id);
-            onPostSystem(`${authorName} deleted a message`);
+            onPostSystem(t('chat.unsavedMessage', { name: authorName }));
           },
         },
       ]);
     } else {
-      Alert.alert('Reply to this message?', '', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Reply', onPress: startReply },
+      Alert.alert(t('chat.replyToMessageTitle'), '', [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('common.reply'), onPress: startReply },
       ]);
     }
   }
@@ -175,7 +177,7 @@ function TextBubble({
               marginLeft: 2,
               letterSpacing: 0.5,
             }}>
-            MENTIONED YOU
+            {t('chat.group.bubble.mentionedYou')}
           </Text>
         </View>
       )}
@@ -217,7 +219,9 @@ function TextBubble({
                   fontWeight: '700',
                   color: isOwn ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.6)',
                 }}>
-                {quoted.type === 'media' ? '📷 Snap' : 'Replying to'}
+                {quoted.type === 'media'
+                  ? t('chat.preview.snap')
+                  : t('chat.conversation.replyingTo', { name: authorName })}
               </Text>
               <Text
                 style={{
@@ -225,7 +229,7 @@ function TextBubble({
                   color: isOwn ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.8)',
                 }}
                 numberOfLines={2}>
-                {quoted.content ?? (quoted.type === 'media' ? 'Snap' : 'Message')}
+                {quoted.content ?? (quoted.type === 'media' ? t('chat.preview.snap') : '')}
               </Text>
             </View>
           )}
@@ -244,7 +248,7 @@ function TextBubble({
                   fontWeight: '700',
                   marginLeft: 4,
                 }}>
-                SAVED
+                {t('chat.savedBadge')}
               </Text>
             </View>
           )}
@@ -276,6 +280,7 @@ function MediaBubble({
   onPostSystem,
 }: Props) {
   const c = useThemeColors();
+  const { t } = useTranslation();
   const [viewerOpen, setViewerOpen] = useState(false);
   const [signedFull, setSignedFull] = useState<string | null>(null);
   const [signedThumb, setSignedThumb] = useState<string | null>(null);
@@ -333,25 +338,25 @@ function MediaBubble({
 
   function saveInViewer() {
     onSetSaved(message.id, true);
-    onPostSystem(`${authorName} saved a snap`);
+    onPostSystem(t('chat.savedSnap', { name: authorName }));
   }
 
   function unsaveInViewer() {
     onSetSaved(message.id, false);
-    onPostSystem(`${authorName} unsaved a snap`);
+    onPostSystem(t('chat.unsavedSnap', { name: authorName }));
   }
 
   function handleLongPress() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (isOwn) {
-      Alert.alert('Delete snap?', 'Members will see that you deleted it.', [
-        { text: 'Cancel', style: 'cancel' },
+      Alert.alert(t('chat.deleteSnapTitle'), t('chat.group.bubble.deleteSnapBody'), [
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: () => {
             onDelete(message.id);
-            onPostSystem(`${authorName} deleted a snap`);
+            onPostSystem(t('chat.group.bubble.deletedSnap', { name: authorName }));
           },
         },
       ]);
@@ -387,7 +392,7 @@ function MediaBubble({
                 fontSize: 10,
                 marginLeft: 4,
               }}>
-              SAVED
+              {t('chat.savedBadge')}
             </Text>
           </View>
         </Pressable>
@@ -413,10 +418,10 @@ function MediaBubble({
       ? { backgroundColor: '#3A3A3D' }
       : { backgroundColor: '#FF3B30' };
   const label = isOwn
-    ? 'Sent · Tap to view'
+    ? t('chat.group.bubble.snapStatusSent')
     : viewedByMe
-      ? 'Opened'
-      : 'New Snap — Tap to open';
+      ? t('chat.row.opened')
+      : t('chat.snap.newSnap');
 
   return (
     <View className={`flex-col ${isOwn ? 'items-end' : 'items-start'} px-3`}>

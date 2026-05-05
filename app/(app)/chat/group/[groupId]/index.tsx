@@ -9,6 +9,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useGroupChat } from '@features/groups/hooks/useGroupChat';
 import { useGroupMembers } from '@features/groups/hooks/useGroupMembers';
 import { useGroupMessages } from '@features/groups/hooks/useGroupMessages';
@@ -24,6 +25,7 @@ import { userToMentionMember } from '@features/groups/utils/mentions';
 
 export default function GroupChatScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const c = useThemeColors();
   const { groupId, name: paramName } = useLocalSearchParams<{
     groupId: string;
@@ -121,7 +123,7 @@ export default function GroupChatScreen() {
               {title}
             </Text>
             <Text className="text-xs" style={{ color: c.textSecondary }}>
-              {members.length} {members.length === 1 ? 'member' : 'members'}
+              {t('chat.group.index.memberCount', { count: members.length })}
             </Text>
           </View>
         </Pressable>
@@ -152,7 +154,7 @@ export default function GroupChatScreen() {
             {title}
           </Text>
           <Text className="text-center text-sm" style={{ color: c.textSecondary }}>
-            Say hi — send a snap or message to break the ice.
+            {t('chat.group.index.emptyBody')}
           </Text>
         </View>
       ) : (
@@ -166,7 +168,7 @@ export default function GroupChatScreen() {
             const memberInfo = members.find((m) => m.user.id === item.sender_id);
             const authorName = isOwn
               ? profile.display_name
-              : memberInfo?.user.display_name ?? 'Member';
+              : memberInfo?.user.display_name ?? t('common.member');
             const authorAvatar = isOwn
               ? profile.avatar_url
               : memberInfo?.user.avatar_url ?? null;

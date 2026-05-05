@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { useTranslation } from 'react-i18next';
 import { useProfile } from '@features/profile/hooks/useProfile';
 import { useFriends } from '@features/friends/hooks/useFriends';
 import { uploadToStorage, getPublicUrl } from '@lib/supabase/storage';
@@ -28,6 +29,7 @@ const HERO_BG_URL = 'https://picsum.photos/seed/snapclone-profile-bg/1080/1440';
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const c = useThemeColors();
   const styles = useStyles(c);
   const { profile, loading, updateProfile } = useProfile();
@@ -50,7 +52,7 @@ export default function ProfileScreen() {
       await updateProfile({ display_name: displayName.trim() });
       setEditingName(false);
     } catch {
-      Alert.alert('Could not save', 'Please try again.');
+      Alert.alert(t('profile.couldNotSaveTitle'), t('common.tryAgain'));
     } finally {
       setSaving(false);
     }
@@ -72,7 +74,7 @@ export default function ProfileScreen() {
       const publicUrl = await getPublicUrl('profiles', path);
       await updateProfile({ avatar_url: publicUrl });
     } catch {
-      Alert.alert('Upload failed', 'Please try again.');
+      Alert.alert(t('profile.uploadFailedTitle'), t('common.tryAgain'));
     } finally {
       setSaving(false);
     }
@@ -135,11 +137,11 @@ export default function ProfileScreen() {
                   {saving ? (
                     <ActivityIndicator color={c.accent} size="small" />
                   ) : (
-                    <Text style={{ color: c.accent, fontWeight: '700' }}>Save</Text>
+                    <Text style={{ color: c.accent, fontWeight: '700' }}>{t('common.save')}</Text>
                   )}
                 </Pressable>
                 <Pressable onPress={() => setEditingName(false)} hitSlop={6}>
-                  <Text style={{ color: 'rgba(255,255,255,0.6)' }}>Cancel</Text>
+                  <Text style={{ color: 'rgba(255,255,255,0.6)' }}>{t('common.cancel')}</Text>
                 </Pressable>
               </View>
             ) : (
@@ -152,7 +154,7 @@ export default function ProfileScreen() {
 
             <View style={styles.tabRow}>
               <View style={[styles.tabPill, styles.tabPillActive]}>
-                <Text style={styles.tabPillTextActive}>My account</Text>
+                <Text style={styles.tabPillTextActive}>{t('profile.myAccount')}</Text>
               </View>
             </View>
           </View>
@@ -161,7 +163,7 @@ export default function ProfileScreen() {
         <View style={styles.statRow}>
           <Pressable onPress={() => setDobOpen(true)} style={styles.statPill}>
             <Text style={styles.statEmoji}>🎈</Text>
-            <Text style={styles.statText}>{birthdayLabel ?? 'Set birthday'}</Text>
+            <Text style={styles.statText}>{birthdayLabel ?? t('profile.setBirthday')}</Text>
             <Ionicons name="chevron-forward" size={12} color={c.textMuted} />
           </Pressable>
 
@@ -179,15 +181,15 @@ export default function ProfileScreen() {
         </View>
 
         <View style={{ paddingHorizontal: 16, marginTop: 20 }}>
-          <Text style={styles.sectionLabel}>Post to...</Text>
+          <Text style={styles.sectionLabel}>{t('profile.postTo')}</Text>
           <Pressable onPress={() => router.push('/(app)/camera')} style={styles.bigTile}>
             <View style={styles.tileIcon}>
               <Ionicons name="camera" size={22} color={c.info} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.tileTitle}>My Story</Text>
+              <Text style={styles.tileTitle}>{t('profile.myStory')}</Text>
               <Text style={styles.tileSubtitle}>
-                <Ionicons name="globe-outline" size={11} color={c.textMuted} /> Friends
+                <Ionicons name="globe-outline" size={11} color={c.textMuted} /> {t('profile.friendsLabel')}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
@@ -195,15 +197,15 @@ export default function ProfileScreen() {
         </View>
 
         <View style={{ paddingHorizontal: 16, marginTop: 20 }}>
-          <Text style={styles.sectionLabel}>Friends</Text>
+          <Text style={styles.sectionLabel}>{t('profile.friendsLabel')}</Text>
           <Pressable onPress={() => router.push('/(app)/search')} style={styles.bigTile}>
             <View style={styles.tileIcon}>
               <Ionicons name="person-add" size={20} color={c.info} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.tileTitle}>Add Friends</Text>
+              <Text style={styles.tileTitle}>{t('profile.addFriends')}</Text>
               <Text style={styles.tileSubtitle}>
-                {friends.length} {friends.length === 1 ? 'friend' : 'friends'}
+                {t('profile.friendCount', { count: friends.length })}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
@@ -216,7 +218,7 @@ export default function ProfileScreen() {
               <Ionicons name="images-outline" size={20} color={c.info} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.tileTitle}>Memories</Text>
+              <Text style={styles.tileTitle}>{t('profile.memories')}</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
           </Pressable>
@@ -273,6 +275,7 @@ function BirthdayEditor({
   onClose: () => void;
   onSave: (iso: string) => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const parsed = initial && /^(\d{4})-(\d{2})-(\d{2})/.exec(initial);
   const [year, setYear] = useState(parsed ? parsed[1] : '2000');
   const [month, setMonth] = useState(parsed ? parsed[2] : '');
@@ -294,7 +297,10 @@ function BirthdayEditor({
       d < 1 ||
       d > 31
     ) {
-      Alert.alert('Invalid date', 'Please enter a valid year, month and day.');
+      Alert.alert(
+        t('profile.birthdayModal.invalidTitle'),
+        t('profile.birthdayModal.invalidBody'),
+      );
       return;
     }
     setSaving(true);
@@ -302,14 +308,12 @@ function BirthdayEditor({
       const iso = `${String(y).padStart(4, '0')}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
       await onSave(iso);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Please try again.';
+      const msg = err instanceof Error ? err.message : t('common.tryAgain');
       const looksLikeMissingColumn =
         /column .*date_of_birth/i.test(msg) || /schema cache/i.test(msg);
       Alert.alert(
-        'Could not save birthday',
-        looksLikeMissingColumn
-          ? 'The date_of_birth column is missing on your users table. Run supabase-add-dob-column.sql in the Supabase SQL editor, then try again.'
-          : msg
+        t('profile.birthdayModal.saveErrorTitle'),
+        looksLikeMissingColumn ? t('profile.birthdayModal.missingColumnHint') : msg,
       );
       setSaving(false);
     }
@@ -335,16 +339,16 @@ function BirthdayEditor({
           }}
           onPress={(e) => e.stopPropagation()}>
           <Text style={{ color: colors.textPrimary, fontSize: 17, fontWeight: '700' }}>
-            Your birthday
+            {t('profile.birthdayModal.title')}
           </Text>
           <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: 4 }}>
-            Used to display your zodiac sign.
+            {t('profile.birthdayModal.subtitle')}
           </Text>
           <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>
             <TextInput
               value={year}
               onChangeText={setYear}
-              placeholder="YYYY"
+              placeholder={t('profile.birthdayModal.yearPlaceholder')}
               placeholderTextColor={colors.placeholder}
               keyboardType="number-pad"
               maxLength={4}
@@ -353,7 +357,7 @@ function BirthdayEditor({
             <TextInput
               value={month}
               onChangeText={setMonth}
-              placeholder="MM"
+              placeholder={t('profile.birthdayModal.monthPlaceholder')}
               placeholderTextColor={colors.placeholder}
               keyboardType="number-pad"
               maxLength={2}
@@ -362,7 +366,7 @@ function BirthdayEditor({
             <TextInput
               value={day}
               onChangeText={setDay}
-              placeholder="DD"
+              placeholder={t('profile.birthdayModal.dayPlaceholder')}
               placeholderTextColor={colors.placeholder}
               keyboardType="number-pad"
               maxLength={2}
@@ -372,13 +376,13 @@ function BirthdayEditor({
           <View
             style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 16, marginTop: 18 }}>
             <Pressable onPress={onClose} hitSlop={6}>
-              <Text style={{ color: colors.textSecondary, fontWeight: '600' }}>Cancel</Text>
+              <Text style={{ color: colors.textSecondary, fontWeight: '600' }}>{t('common.cancel')}</Text>
             </Pressable>
             <Pressable onPress={commit} disabled={saving} hitSlop={6}>
               {saving ? (
                 <ActivityIndicator color={colors.accent} size="small" />
               ) : (
-                <Text style={{ color: colors.accent, fontWeight: '700' }}>Save</Text>
+                <Text style={{ color: colors.accent, fontWeight: '700' }}>{t('common.save')}</Text>
               )}
             </Pressable>
           </View>

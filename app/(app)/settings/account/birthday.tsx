@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { TextInput, Alert, View, Text } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useProfile } from '@features/profile/hooks/useProfile';
 import { ageFromIso, MIN_AGE_YEARS } from '@features/auth/utils/accountActions';
 import { EditFieldScreen, useStyledInput } from '@features/settings/components/EditFieldScreen';
@@ -8,6 +9,7 @@ import { useThemeColors } from '@lib/theme/useThemeColors';
 
 export default function EditBirthdayScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { profile, updateProfile } = useProfile();
   const s = useStyledInput();
   const c = useThemeColors();
@@ -48,19 +50,26 @@ export default function EditBirthdayScreen() {
       await updateProfile({ date_of_birth: iso });
       router.back();
     } catch (err) {
-      Alert.alert('Could not save', err instanceof Error ? err.message : 'Please try again.');
+      Alert.alert(
+        t('settings.account.common.couldNotSave'),
+        err instanceof Error ? err.message : t('settings.account.common.tryAgain'),
+      );
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <EditFieldScreen title="Birthday" onSave={save} saveDisabled={!canSave} saving={saving}>
+    <EditFieldScreen
+      title={t('settings.account.birthday.title')}
+      onSave={save}
+      saveDisabled={!canSave}
+      saving={saving}>
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <TextInput
           value={year}
           onChangeText={setYear}
-          placeholder="YYYY"
+          placeholder={t('settings.account.birthday.yearPlaceholder')}
           placeholderTextColor={c.placeholder}
           keyboardType="number-pad"
           maxLength={4}
@@ -69,7 +78,7 @@ export default function EditBirthdayScreen() {
         <TextInput
           value={month}
           onChangeText={setMonth}
-          placeholder="MM"
+          placeholder={t('settings.account.birthday.monthPlaceholder')}
           placeholderTextColor={c.placeholder}
           keyboardType="number-pad"
           maxLength={2}
@@ -78,7 +87,7 @@ export default function EditBirthdayScreen() {
         <TextInput
           value={day}
           onChangeText={setDay}
-          placeholder="DD"
+          placeholder={t('settings.account.birthday.dayPlaceholder')}
           placeholderTextColor={c.placeholder}
           keyboardType="number-pad"
           maxLength={2}
@@ -87,9 +96,13 @@ export default function EditBirthdayScreen() {
       </View>
 
       {tooYoung && (
-        <Text style={s.error}>You must be at least {MIN_AGE_YEARS} years old to use Snapchat.</Text>
+        <Text style={s.error}>
+          {t('settings.account.birthday.tooYoung', { minAge: MIN_AGE_YEARS })}
+        </Text>
       )}
-      {!tooYoung && age !== null && <Text style={s.hint}>Age: {age}</Text>}
+      {!tooYoung && age !== null && (
+        <Text style={s.hint}>{t('settings.account.birthday.age', { age })}</Text>
+      )}
     </EditFieldScreen>
   );
 }

@@ -13,7 +13,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#000000"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "experiments": {
       "tsconfigPaths": true
     },
@@ -21,14 +23,20 @@
       "expo-router",
       "expo-camera",
       "expo-media-library",
-["expo-secure-store", { "configureAndroidBackup": true }],
+      [
+        "expo-secure-store",
+        {
+          "configureAndroidBackup": true
+        }
+      ],
       [
         "expo-image-picker",
         {
           "photosPermission": "Allow Snapchat Clone to access your photos.",
           "cameraPermission": "Allow Snapchat Clone to access your camera."
         }
-      ]
+      ],
+      "expo-localization"
     ],
     "web": {
       "favicon": "./assets/favicon.png",

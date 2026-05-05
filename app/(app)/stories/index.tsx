@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { useStories, type StoryGroup } from '@features/stories/hooks/useStories';
 import { StoryRing } from '@features/stories/components/StoryRing';
 import { StoryViewer } from '@features/stories/components/StoryViewer';
@@ -16,6 +17,7 @@ import { useThemeColors } from '@lib/theme/useThemeColors';
 
 export default function StoriesFeedScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const c = useThemeColors();
   const { storyGroups, loading, recordView } = useStories();
   const [activeGroup, setActiveGroup] = useState<StoryGroup | null>(null);
@@ -29,7 +31,7 @@ export default function StoriesFeedScreen() {
           </Text>
         </Pressable>
         <Text className="font-bold text-xl tracking-tight" style={{ color: c.textPrimary }}>
-          Stories
+          {t('stories.title')}
         </Text>
         <Pressable
           onPress={() => router.push('/(app)/search')}
@@ -50,17 +52,17 @@ export default function StoriesFeedScreen() {
         <View className="flex-1 items-center justify-center px-8">
           <Text className="text-5xl mb-4">📸</Text>
           <Text className="text-xl font-bold mb-2" style={{ color: c.textPrimary }}>
-            No stories yet
+            {t('stories.indexEmptyTitle')}
           </Text>
           <Text className="text-sm text-center" style={{ color: c.textSecondary }}>
-            Post your first story or add friends to see theirs.
+            {t('stories.indexEmptyBody')}
           </Text>
           <Pressable
             onPress={() => router.back()}
             className="rounded-full px-8 py-3 mt-6"
             style={{ backgroundColor: c.accent }}>
             <Text className="font-bold" style={{ color: c.accentText }}>
-              Open Camera
+              {t('stories.openCamera')}
             </Text>
           </Pressable>
         </View>
@@ -81,7 +83,7 @@ export default function StoriesFeedScreen() {
             <Text
               className="text-xs font-semibold uppercase tracking-widest mb-3"
               style={{ color: c.textSecondary }}>
-              Recent
+              {t('stories.recent')}
             </Text>
             {storyGroups.map((group) => (
               <Pressable
@@ -95,9 +97,9 @@ export default function StoriesFeedScreen() {
                     {group.user.display_name}
                   </Text>
                   <Text className="text-sm" style={{ color: c.textSecondary }}>
-                    {group.stories.length} {group.stories.length === 1 ? 'story' : 'stories'}
+                    {t('stories.storyCount', { count: group.stories.length })}
                     {group.hasUnviewed && (
-                      <Text style={{ color: c.accent }}> · New</Text>
+                      <Text style={{ color: c.accent }}> · {t('stories.newBadge')}</Text>
                     )}
                   </Text>
                 </View>

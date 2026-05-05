@@ -11,6 +11,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from 'react-i18next';
 import { useSearch } from '@features/friends/hooks/useSearch';
 import { useFriends, type FriendWithStatus } from '@features/friends/hooks/useFriends';
 import { useFriendRequest } from '@features/friends/hooks/useFriendRequest';
@@ -24,6 +25,7 @@ type ButtonState = 'add' | 'pending_sent' | 'pending_received' | 'accepted';
 
 export default function SearchScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const c = useThemeColors();
   const { query, setQuery, results, loading: searchLoading } = useSearch();
   const { friends, pendingReceived, pendingSent, loading: friendsLoading, refresh } = useFriends();
@@ -101,7 +103,7 @@ export default function SearchScreen() {
           className="px-4 py-2 rounded-full"
           style={{ backgroundColor: c.accent }}>
           <Text className="text-sm font-bold" style={{ color: c.accentText }}>
-            Chat
+            {t('search.chat')}
           </Text>
         </Pressable>
       );
@@ -113,7 +115,7 @@ export default function SearchScreen() {
           className="px-4 py-2 rounded-full"
           style={{ backgroundColor: c.surfaceElevated }}>
           <Text className="text-sm font-semibold" style={{ color: c.textMuted }}>
-            Added
+            {t('search.added')}
           </Text>
         </View>
       );
@@ -134,7 +136,7 @@ export default function SearchScreen() {
             className="px-4 py-2 rounded-full items-center justify-center"
             style={{ backgroundColor: c.accent }}>
             <Text className="text-sm font-bold" style={{ color: c.accentText }}>
-              Accept
+              {t('search.accept')}
             </Text>
           </Pressable>
         </View>
@@ -147,7 +149,7 @@ export default function SearchScreen() {
         className="px-4 py-2 rounded-full"
         style={{ backgroundColor: c.accent }}>
         <Text className="text-sm font-bold" style={{ color: c.accentText }}>
-          Add
+          {t('search.add')}
         </Text>
       </Pressable>
     );
@@ -209,7 +211,7 @@ export default function SearchScreen() {
             <TextInput
               className="flex-1 text-base ml-2"
               style={{ color: c.textPrimary }}
-              placeholder="Search friends"
+              placeholder={t('search.placeholder')}
               placeholderTextColor={c.placeholder}
               value={query}
               onChangeText={setQuery}
@@ -236,7 +238,7 @@ export default function SearchScreen() {
           <View className="flex-1 items-center justify-center px-8">
             <Ionicons name="search-outline" size={48} color={c.iconMuted} />
             <Text className="text-center mt-3" style={{ color: c.textSecondary }}>
-              No users found for "{query}"
+              {t('search.noResults', { query })}
             </Text>
           </View>
         ) : (
@@ -259,7 +261,7 @@ export default function SearchScreen() {
             <View>
               {pendingReceived.length > 0 && (
                 <View>
-                  <SectionHeader label="Friend Requests" count={pendingReceived.length} />
+                  <SectionHeader label={t('search.friendRequestsLabel')} count={pendingReceived.length} />
                   {pendingReceived.map((u) => (
                     <UserRow key={u.id} user={u} />
                   ))}
@@ -268,7 +270,7 @@ export default function SearchScreen() {
 
               {pendingSent.length > 0 && (
                 <View>
-                  <SectionHeader label="Sent Requests" count={pendingSent.length} />
+                  <SectionHeader label={t('search.sentRequestsLabel')} count={pendingSent.length} />
                   {pendingSent.map((u) => (
                     <UserRow key={u.id} user={u} />
                   ))}
@@ -277,7 +279,7 @@ export default function SearchScreen() {
 
               {friends.length > 0 && (
                 <View>
-                  <SectionHeader label="My Friends" count={friends.length} />
+                  <SectionHeader label={t('search.myFriendsLabel')} count={friends.length} />
                   {friends.map((u) => (
                     <UserRow key={u.id} user={u} />
                   ))}
@@ -299,14 +301,15 @@ export default function SearchScreen() {
 }
 
 function EmptyState({ colors }: { colors: ThemeColors }) {
+  const { t } = useTranslation();
   return (
     <View className="items-center justify-center px-8 pt-16">
       <Ionicons name="people-outline" size={56} color={colors.iconMuted} />
       <Text className="font-bold text-lg mt-4 mb-1" style={{ color: colors.textPrimary }}>
-        Find your friends
+        {t('search.emptyTitle')}
       </Text>
       <Text className="text-sm text-center" style={{ color: colors.textSecondary }}>
-        Search by username to add friends and start snapping.
+        {t('search.emptyBody')}
       </Text>
     </View>
   );

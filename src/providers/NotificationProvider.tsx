@@ -17,6 +17,7 @@ import Animated, {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@lib/supabase/client';
 import { useAuthStore } from '@features/auth/store/authStore';
 import { Avatar } from '@components/ui/Avatar';
@@ -44,6 +45,7 @@ interface ToastPayload {
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
   const c = useThemeColors();
+  const { t } = useTranslation();
   const profile = useAuthStore((s) => s.profile);
   const pathname = usePathname();
   const pathnameRef = useRef(pathname);
@@ -111,8 +113,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             title: (sender as DbUser).display_name,
             body:
               msg.type === 'snap'
-                ? '📸 Sent you a Snap'
-                : `💬 ${msg.content ?? 'Sent you a message'}`,
+                ? t('chat.notifications.snapBody')
+                : msg.content
+                  ? t('chat.notifications.messageBody', { content: msg.content })
+                  : t('chat.notifications.messageEmpty'),
             avatarUrl: (sender as DbUser).avatar_url,
             accent: msg.type === 'snap' ? 'snap' : 'message',
             onPress: async () => {
@@ -182,10 +186,13 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             senderUser.display_name;
           const previewBody =
             msg.type === 'media'
-              ? `📷 ${senderUser.display_name} sent a snap`
+              ? t('chat.notifications.groupSnap', { name: senderUser.display_name })
               : iAmMentioned
-                ? `🏷️ ${senderUser.display_name} mentioned you`
-                : `💬 ${senderUser.display_name}: ${msg.content ?? ''}`;
+                ? t('chat.notifications.groupMention', { name: senderUser.display_name })
+                : t('chat.notifications.groupMessage', {
+                    name: senderUser.display_name,
+                    content: msg.content ?? '',
+                  });
 
           showToast({
             id: msg.id,

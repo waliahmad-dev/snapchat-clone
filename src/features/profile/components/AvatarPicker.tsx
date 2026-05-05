@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pressable, ActivityIndicator, Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { useTranslation } from 'react-i18next';
 import { Avatar } from '@components/ui/Avatar';
 import { uploadToStorage, getPublicUrl } from '@lib/supabase/storage';
 import { useAuthStore } from '@features/auth/store/authStore';
@@ -13,6 +14,7 @@ interface Props {
 
 export function AvatarPicker({ size = 96 }: Props) {
   const c = useThemeColors();
+  const { t } = useTranslation();
   const profile = useAuthStore((s) => s.profile);
   const { updateProfile } = useProfile();
   const [uploading, setUploading] = React.useState(false);
@@ -33,7 +35,7 @@ export function AvatarPicker({ size = 96 }: Props) {
       const publicUrl = await getPublicUrl('profiles', path);
       await updateProfile({ avatar_url: publicUrl });
     } catch (err: any) {
-      Alert.alert('Upload failed', err.message);
+      Alert.alert(t('profile.uploadFailedTitle'), err.message);
     } finally {
       setUploading(false);
     }

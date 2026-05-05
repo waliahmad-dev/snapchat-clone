@@ -87,6 +87,7 @@ async function upsertRemoteRow(row: RemoteMessageRow): Promise<void> {
       if (!deletePending) m.deletedAt = row.deleted_at ? new Date(row.deleted_at).getTime() : null;
       m.replyToMessageId = row.reply_to_message_id ?? null;
       m.isOptimistic = false;
+      // hidden_locally is a per-device flag — never overwrite from server.
     });
     return;
   }
@@ -119,6 +120,7 @@ async function upsertRemoteRow(row: RemoteMessageRow): Promise<void> {
     m.deletedAt = row.deleted_at ? new Date(row.deleted_at).getTime() : null;
     m.replyToMessageId = row.reply_to_message_id ?? null;
     m.isOptimistic = false;
+    m.hiddenLocally = false;
   });
 }
 
@@ -142,6 +144,7 @@ export function useMessages(conversationId: string) {
       .query(
         Q.where('conversation_id', conversationId),
         Q.where('deleted_at', null),
+        Q.where('hidden_locally', Q.notEq(true)),
       )
       .observe()
       .subscribe((rows) => {
@@ -256,6 +259,7 @@ export function useMessages(conversationId: string) {
           m.deletedAt = null;
           m.replyToMessageId = replyRemoteId;
           m.isOptimistic = true;
+          m.hiddenLocally = false;
         });
       });
 
@@ -336,11 +340,13 @@ export function useMessages(conversationId: string) {
     const target = await findByLocalId(localId);
     if (!target?.remoteId) return;
     const wasViewed = target.viewedAt != null;
-    const ts = new Date().toISOString();
     await database.write(async () => {
       await target.update((m) => {
         m.saved = save;
-        if (!save && wasViewed) m.deletedAt = Date.parse(ts);
+        // Unsaving a previously viewed message hides it locally only. The
+        // server-side row stays alive until both participants leave the chat,
+        // so the *other* user keeps seeing it while they're still active.
+        if (!save && wasViewed) m.hiddenLocally = true;
       });
     });
     await enqueueJob({
@@ -348,13 +354,6 @@ export function useMessages(conversationId: string) {
       payload: { messageId: target.remoteId, field: 'saved', value: save },
       groupKey: `msg-save:${target.remoteId}`,
     });
-    if (!save && wasViewed) {
-      await enqueueJob({
-        kind: JOB.MESSAGE_DELETE,
-        payload: { messageId: target.remoteId, field: 'deleted_at', value: ts },
-        groupKey: `msg-del:${target.remoteId}`,
-      });
-    }
   }, []);
 
   const postSystemMessage = useCallback(
@@ -376,6 +375,7 @@ export function useMessages(conversationId: string) {
           m.deletedAt = null;
           m.replyToMessageId = null;
           m.isOptimistic = true;
+          m.hiddenLocally = false;
         });
       });
 
@@ -425,18 +425,24 @@ export function useMessages(conversationId: string) {
     }
   }, [profile, conversationId]);
 
-  const cleanupViewedTextOnLeave = useCallback(async () => {
+  /**
+   * Local-only hide of unsaved received messages on leave. The server row
+   * stays alive so the sender keeps seeing it while they're still in the
+   * chat — true destruction happens server-side via the chat_presence
+   * trigger once both participants are out.
+   */
+  const hideViewedReceivedOnLeave = useCallback(async () => {
     if (!profile) return;
-    const ts = new Date().toISOString();
-    const tsMs = Date.parse(ts);
 
     const local = await messagesCollection()
       .query(
         Q.where('conversation_id', conversationId),
-        Q.where('type', 'text'),
         Q.where('sender_id', Q.notEq(profile.id)),
         Q.where('saved', false),
         Q.where('deleted_at', null),
+        Q.where('hidden_locally', Q.notEq(true)),
+        Q.where('type', Q.oneOf(['text', 'media', 'snap'])),
+        Q.where('viewed_at', Q.notEq(null)),
       )
       .fetch();
     if (local.length === 0) return;
@@ -444,19 +450,10 @@ export function useMessages(conversationId: string) {
     await database.write(async () => {
       for (const m of local) {
         await m.update((row) => {
-          row.deletedAt = tsMs;
+          row.hiddenLocally = true;
         });
       }
     });
-
-    for (const m of local) {
-      if (!m.remoteId) continue;
-      await enqueueJob({
-        kind: JOB.MESSAGE_DELETE,
-        payload: { messageId: m.remoteId, field: 'deleted_at', value: ts },
-        groupKey: `msg-del:${m.remoteId}`,
-      });
-    }
   }, [profile, conversationId]);
 
   return {
@@ -469,6 +466,6 @@ export function useMessages(conversationId: string) {
     setMessageSaved,
     postSystemMessage,
     markAllReceivedAsViewed,
-    cleanupViewedTextOnLeave,
+    hideViewedReceivedOnLeave,
   };
 }

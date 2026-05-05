@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, Image, StyleSheet, ActivityIndicator } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { getSignedUrl } from '@lib/supabase/storage';
 import type { DbMessage } from '@/types/database';
 import { useThemeColors } from '@lib/theme/useThemeColors';
@@ -15,6 +16,7 @@ type ViewState = 'unopened' | 'loading' | 'open' | 'viewed';
 
 export function SnapReceived({ message, isOwn, onMarkViewed, onSave }: Props) {
   const c = useThemeColors();
+  const { t } = useTranslation();
   const [viewState, setViewState] = useState<ViewState>(
     message.viewed_at ? 'viewed' : 'unopened'
   );
@@ -60,13 +62,13 @@ export function SnapReceived({ message, isOwn, onMarkViewed, onSave }: Props) {
             className="rounded-full px-3 py-2"
             style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
             <Text className="text-xs font-bold" style={{ color: '#FFFFFF' }}>
-              SAVE
+              {t('chat.snap.save')}
             </Text>
           </Pressable>
         </View>
         <View className="absolute top-16 left-0 right-0 items-center">
           <Text className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>
-            Hold to view • Release to close
+            {t('chat.snap.holdHint')}
           </Text>
         </View>
       </Pressable>
@@ -83,7 +85,7 @@ export function SnapReceived({ message, isOwn, onMarkViewed, onSave }: Props) {
         }}>
         <ActivityIndicator color={c.accent} size="small" />
         <Text className="text-sm" style={{ color: c.accent }}>
-          Loading snap…
+          {t('chat.snap.loading')}
         </Text>
       </View>
     );
@@ -103,11 +105,11 @@ export function SnapReceived({ message, isOwn, onMarkViewed, onSave }: Props) {
       <Text className="text-sm font-bold" style={{ color: pillText }}>
         {isSentByMe
           ? isViewed
-            ? '📷 Snap Opened'
-            : '📷 Snap Sent'
+            ? t('chat.snap.statusOpened')
+            : t('chat.snap.statusSent')
           : isViewed
-          ? '📷 Snap Viewed'
-          : '📷 Tap to Open'}
+            ? t('chat.snap.statusViewed')
+            : t('chat.snap.statusTapToOpen')}
       </Text>
     </Pressable>
   );

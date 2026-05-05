@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from 'react-i18next';
 import { Avatar } from '@components/ui/Avatar';
 import { useFriends } from '@features/friends/hooks/useFriends';
 import { useAuthStore } from '@features/auth/store/authStore';
@@ -13,6 +14,7 @@ import { useThemeColors } from '@lib/theme/useThemeColors';
 
 export default function NewChatScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const c = useThemeColors();
   const profile = useAuthStore((s) => s.profile);
   const { friends, loading } = useFriends();
@@ -62,14 +64,17 @@ export default function NewChatScreen() {
       router.dismiss();
       openGroupChat(groupId, groupName.trim() || null);
     } catch (err) {
-      Alert.alert('Could not start chat', err instanceof Error ? err.message : 'Please try again.');
+      Alert.alert(
+        t('chat.new.errorTitle'),
+        err instanceof Error ? err.message : t('common.tryAgain'),
+      );
     } finally {
       setCreating(false);
     }
   }
 
   const isGroup = selected.size >= 2;
-  const ctaLabel = isGroup ? `Chat (${selected.size})` : selected.size === 1 ? 'Chat' : 'Chat';
+  const ctaLabel = isGroup ? t('chat.new.chatButtonCount', { count: selected.size }) : t('chat.new.chatButton');
 
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor: c.bg }} edges={['top']}>
@@ -78,11 +83,11 @@ export default function NewChatScreen() {
         style={{ borderColor: c.border }}>
         <Pressable onPress={() => router.dismiss()} hitSlop={8}>
           <Text className="text-base" style={{ color: c.textSecondary }}>
-            Cancel
+            {t('common.cancel')}
           </Text>
         </Pressable>
         <Text className="text-lg font-bold" style={{ color: c.textPrimary }}>
-          New Chat
+          {t('chat.new.title')}
         </Text>
         <Pressable onPress={handleStart} disabled={creating || selected.size === 0} hitSlop={8}>
           {creating ? (
@@ -102,7 +107,7 @@ export default function NewChatScreen() {
           <TextInput
             value={groupName}
             onChangeText={setGroupName}
-            placeholder="Group name (optional)"
+            placeholder={t('chat.new.groupNamePlaceholder')}
             placeholderTextColor={c.placeholder}
             maxLength={50}
             className="rounded-xl px-4 py-3 text-base"
@@ -119,7 +124,7 @@ export default function NewChatScreen() {
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Search friends"
+            placeholder={t('chat.new.searchPlaceholder')}
             placeholderTextColor={c.placeholder}
             className="ml-2 flex-1 text-sm"
             style={{ color: c.textPrimary }}
@@ -130,7 +135,7 @@ export default function NewChatScreen() {
       {selected.size > 0 && (
         <View className="px-4 pb-2">
           <Text className="text-xs" style={{ color: c.textSecondary }}>
-            {selected.size} selected
+            {t('chat.new.selectedCount', { count: selected.size })}
           </Text>
         </View>
       )}
@@ -143,10 +148,10 @@ export default function NewChatScreen() {
         <View className="flex-1 items-center justify-center px-8">
           <Ionicons name="people-outline" size={48} color={c.iconMuted} />
           <Text className="mt-3 text-base font-bold" style={{ color: c.textPrimary }}>
-            No friends yet
+            {t('chat.new.emptyTitle')}
           </Text>
           <Text className="mt-1 text-center text-sm" style={{ color: c.textSecondary }}>
-            Add friends from your profile to start a chat.
+            {t('chat.new.emptyBody')}
           </Text>
         </View>
       ) : (

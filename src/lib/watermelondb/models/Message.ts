@@ -21,6 +21,7 @@ export default class Message extends Model {
   @field('deleted_at') deletedAt!: number | null;
   @field('is_optimistic') isOptimistic!: boolean;
   @text('reply_to_message_id') replyToMessageId!: string | null;
+  @field('hidden_locally') hiddenLocally!: boolean;
 
   @relation('conversations', 'conversation_id') conversation!: Conversation;
 }

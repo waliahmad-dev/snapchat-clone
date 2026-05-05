@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Avatar } from '@components/ui/Avatar';
 import { useThemeColors } from '@lib/theme/useThemeColors';
 import type { GroupMemberWithUser } from '../hooks/useGroupMembers';
@@ -12,8 +13,9 @@ interface Props {
 
 export function MemberRow({ member, rightSlot }: Props) {
   const router = useRouter();
+  const { t } = useTranslation();
   const c = useThemeColors();
-  const handle = member.user.username ? `@${member.user.username}` : 'Member';
+  const handle = member.user.username ? `@${member.user.username}` : '';
 
   return (
     <Pressable
@@ -34,7 +36,7 @@ export function MemberRow({ member, rightSlot }: Props) {
             style={{ color: c.textPrimary }}
             numberOfLines={1}>
             {member.user.display_name}
-            {member.isMe ? ' (You)' : ''}
+            {member.isMe ? t('chat.group.memberRow.youSuffix') : ''}
           </Text>
         </View>
         <Text className="text-sm" style={{ color: c.textSecondary }}>

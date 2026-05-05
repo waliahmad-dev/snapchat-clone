@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Pressable, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
+import { useTranslation } from 'react-i18next';
 import type Memory from '@lib/watermelondb/models/Memory';
 import { SCREEN_WIDTH, MEMORIES_GRID_COLUMNS } from '@constants/dimensions';
 import { useThemeColors } from '@lib/theme/useThemeColors';
@@ -18,6 +19,7 @@ interface Props {
 
 export function MemoryCell({ memory, getUrl, onPress, onLongPress }: Props) {
   const c = useThemeColors();
+  const { t } = useTranslation();
   const [uri, setUri] = useState<string | null>(null);
 
   useEffect(() => {
@@ -48,7 +50,7 @@ export function MemoryCell({ memory, getUrl, onPress, onLongPress }: Props) {
         <View style={[StyleSheet.absoluteFill, styles.uploadOverlay]}>
           <ActivityIndicator color="#FFFFFF" size="small" />
           <Text style={{ color: '#FFFFFF', fontSize: 12, marginTop: 4 }}>
-            {memory.uploadStatus === 'uploading' ? 'Uploading…' : 'Pending'}
+            {memory.uploadStatus === 'uploading' ? t('memories.cellUploading') : t('memories.cellPending')}
           </Text>
         </View>
       )}
