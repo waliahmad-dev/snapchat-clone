@@ -3,7 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import * as Localization from 'expo-localization';
 import i18n, { isSupportedLocale, type Locale } from './index';
 
-const STORAGE_KEY = 'app:locale';
+const STORAGE_KEY = 'app_locale';
 
 interface LocaleState {
   locale: Locale;

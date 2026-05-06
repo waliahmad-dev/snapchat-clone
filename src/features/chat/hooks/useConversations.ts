@@ -6,6 +6,7 @@ import Conversation from '@lib/watermelondb/models/Conversation';
 import Message from '@lib/watermelondb/models/Message';
 import Friend from '@lib/watermelondb/models/Friend';
 import { useAuthStore } from '@features/auth/store/authStore';
+import { upsertRemoteMessage, type RemoteMessageRow } from '../utils/messageSync';
 import type { DbConversation, DbUser } from '@/types/database';
 
 export type ConversationStatus = 'sent' | 'opened' | 'replied' | 'received' | 'empty';
@@ -42,7 +43,9 @@ export function useConversations() {
       database
         .get<Message>('messages')
         .query(Q.where('deleted_at', null), Q.where('hidden_locally', Q.notEq(true)))
-        .observe()
+        // observeWithColumns so unread_count recomputes when viewed_at flips,
+        // not only when a row is inserted or deleted.
+        .observeWithColumns(['viewed_at', 'saved'])
         .subscribe((rows) => setMessages(rows)),
       database
         .get<Friend>('friends')
@@ -66,8 +69,39 @@ export function useConversations() {
 
     const msgChannel = supabase
       .channel(`messages-for-convs:${profile.id}:${instanceId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () =>
-        syncFromServer(),
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages' },
+        (payload) => {
+          const row = payload.new as RemoteMessageRow;
+          database
+            .write(async () => {
+              await upsertRemoteMessage(row);
+            })
+            .catch((err) =>
+              console.warn('[Conversations] realtime INSERT failed:', err),
+            );
+          void syncFromServer();
+        },
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'messages' },
+        (payload) => {
+          const row = payload.new as RemoteMessageRow;
+          database
+            .write(async () => {
+              await upsertRemoteMessage(row);
+            })
+            .catch((err) =>
+              console.warn('[Conversations] realtime UPDATE failed:', err),
+            );
+        },
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'messages' },
+        () => syncFromServer(),
       )
       .subscribe();
 

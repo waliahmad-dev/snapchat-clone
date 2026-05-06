@@ -8,6 +8,7 @@ import { enqueueJob } from '@lib/offline/outboxRunner';
 import { JOB } from '@lib/offline/jobs';
 import { uuid } from '@lib/offline/uuid';
 import i18n from '@lib/i18n';
+import { encodeSystemEvent } from '@lib/i18n/systemEvent';
 
 export async function renameGroup(groupId: string, name: string | null): Promise<void> {
   const cleaned = name?.trim() || null;
@@ -84,8 +85,10 @@ export async function addMembersToGroup(
       groupKey: `group-add:${membershipId}`,
     });
 
-    const sysContent = i18n.t('chat.group.system.addedMember', {
+    const sysContent = encodeSystemEvent('chat.group.system.addedMember', {
       name: myName,
+      // Pre-resolve the member-name fallback because that's a value, not a
+      // template — the envelope itself carries the i18n key for the event.
       member: newMemberNames[userId] ?? i18n.t('common.someone'),
     });
     const sysId = uuid();
@@ -119,7 +122,7 @@ export async function leaveGroup(
   myName: string,
   membershipId: string
 ): Promise<void> {
-  const sysContent = i18n.t('chat.group.system.leftGroup', { name: myName });
+  const sysContent = encodeSystemEvent('chat.group.system.leftGroup', { name: myName });
   const sysId = uuid();
 
   // Post system event first so other members see it.

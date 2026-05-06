@@ -8,6 +8,7 @@ import type { ConversationWithPartner, ConversationStatus } from '../hooks/useCo
 import { useAuthStore } from '@features/auth/store/authStore';
 import { useStreak } from '../hooks/useStreak';
 import { shortTimeAgo } from '../utils/messageHelpers';
+import { useNow } from '@hooks/useNow';
 import { useCameraStore } from '@features/camera/store/cameraStore';
 import { Avatar } from '@components/ui/Avatar';
 import { useThemeColors, type ThemeColors } from '@lib/theme/useThemeColors';
@@ -47,8 +48,9 @@ export function ConversationRow({ conversation }: Props) {
   const profile = useAuthStore((s) => s.profile);
   const streak = useStreak(profile?.id ?? '', conversation.partner.id);
 
+  const now = useNow(60_000);
   const { label, icon, color } = describeStatus(conversation.status, c, t);
-  const timeLabel = shortTimeAgo(conversation.lastActivityAt);
+  const timeLabel = shortTimeAgo(conversation.lastActivityAt, now);
 
   return (
     <Pressable

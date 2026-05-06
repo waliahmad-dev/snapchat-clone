@@ -241,7 +241,8 @@
       "newFriendBody": "Faites coucou — envoyez votre premier snap ou message.",
       "replyingTo": "Réponse à {{name}}",
       "replyPlaceholder": "Répondre à {{name}}…",
-      "sendPlaceholder": "Envoyer un message…"
+      "sendPlaceholder": "Envoyer un message…",
+      "startOfConversation": "Début de la conversation"
     },
     "row": {
       "sent": "Envoyé",
@@ -280,7 +281,11 @@
     "unsavedSnap": "{{name}} a annulé l’enregistrement d’un snap",
     "savedMessage": "{{name}} a enregistré un message",
     "unsavedMessage": "{{name}} a annulé l’enregistrement d’un message",
+    "screenshotTaken": "{{name}} a fait une capture 📸",
     "savedBadge": "ENREGISTRÉ",
+    "savedByYou": "ENREGISTRÉ PAR VOUS",
+    "savedByBoth": "ENREGISTRÉ PAR LES DEUX",
+    "savedByCount": "ENREGISTRÉ PAR {{count}}",
     "deleteSnapTitle": "Supprimer le snap ?",
     "deleteSnapBody": "Vous verrez tous les deux que vous l’avez supprimé.",
     "deleteMessageTitle": "Supprimer le message ?",

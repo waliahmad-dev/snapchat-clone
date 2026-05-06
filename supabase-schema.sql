@@ -151,7 +151,7 @@ CREATE TABLE public.messages (
                      CHECK (type IN ('text','snap','media','system')),
   created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   viewed_at        TIMESTAMPTZ,
-  saved            BOOLEAN NOT NULL DEFAULT FALSE,
+  saved_by         UUID[] NOT NULL DEFAULT '{}',
   deleted_at       TIMESTAMPTZ
 );
 CREATE INDEX idx_messages_conv   ON public.messages(conversation_id, created_at DESC);
@@ -185,6 +185,40 @@ CREATE POLICY "messages_update" ON public.messages FOR UPDATE USING (
 ALTER TABLE public.conversations
   ADD CONSTRAINT fk_last_message
   FOREIGN KEY (last_message_id) REFERENCES public.messages(id) ON DELETE SET NULL;
+
+-- Save / unsave a message: maintain saved_by[] atomically. SECURITY DEFINER
+-- so the caller can only ever add/remove their own auth.uid().
+CREATE OR REPLACE FUNCTION public.toggle_message_save(_message UUID, _save BOOLEAN)
+RETURNS public.messages LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  result public.messages;
+BEGIN
+  IF _save THEN
+    UPDATE public.messages m
+       SET saved_by = (
+         SELECT ARRAY(SELECT DISTINCT unnest(m.saved_by || ARRAY[auth.uid()]))
+       )
+     WHERE m.id = _message
+       AND EXISTS (
+         SELECT 1 FROM public.conversations c
+         WHERE c.id = m.conversation_id
+           AND (c.participant_1 = auth.uid() OR c.participant_2 = auth.uid())
+       )
+    RETURNING * INTO result;
+  ELSE
+    UPDATE public.messages m
+       SET saved_by = array_remove(m.saved_by, auth.uid())
+     WHERE m.id = _message
+       AND EXISTS (
+         SELECT 1 FROM public.conversations c
+         WHERE c.id = m.conversation_id
+           AND (c.participant_1 = auth.uid() OR c.participant_2 = auth.uid())
+       )
+    RETURNING * INTO result;
+  END IF;
+  RETURN result;
+END;
+$$;
 
 
 -- ============================================================

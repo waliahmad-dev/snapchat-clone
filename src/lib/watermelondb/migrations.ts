@@ -116,5 +116,14 @@ export const migrations = schemaMigrations({
         }),
       ],
     },
+    {
+      toVersion: 7,
+      steps: [
+        addColumns({
+          table: 'messages',
+          columns: [{ name: 'saved_by_json', type: 'string' }],
+        }),
+      ],
+    },
   ],
 });

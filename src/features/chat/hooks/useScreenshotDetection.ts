@@ -6,6 +6,7 @@ import { useAuthStore } from '@features/auth/store/authStore';
 import { enqueueJob } from '@lib/offline/outboxRunner';
 import { JOB } from '@lib/offline/jobs';
 import { uuid } from '@lib/offline/uuid';
+import { encodeSystemEvent } from '@lib/i18n/systemEvent';
 
 export function useScreenshotDetection(conversationId: string) {
   const profile = useAuthStore((s) => s.profile);
@@ -15,7 +16,9 @@ export function useScreenshotDetection(conversationId: string) {
 
     const subscription = ScreenCapture.addScreenshotListener(async () => {
       const messageId = uuid();
-      const content = `${profile.display_name} took a screenshot 📸`;
+      const content = encodeSystemEvent('chat.screenshotTaken', {
+        name: profile.display_name,
+      });
 
       await database.write(async () => {
         await database.get<Message>('messages').create((m) => {
@@ -27,10 +30,11 @@ export function useScreenshotDetection(conversationId: string) {
           m.type = 'system';
           m.createdAt = Date.now();
           m.viewedAt = null;
-          m.saved = false;
+          m.savedByJson = '[]';
           m.deletedAt = null;
           m.replyToMessageId = null;
           m.isOptimistic = true;
+          m.hiddenLocally = false;
         });
       });
 

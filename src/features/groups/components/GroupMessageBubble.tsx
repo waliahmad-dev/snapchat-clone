@@ -8,12 +8,28 @@ import { Avatar } from '@components/ui/Avatar';
 import { SystemEventBubble } from '@features/chat/components/SystemEventBubble';
 import { SnapViewer } from '@features/chat/components/SnapViewer';
 import { useReplyStore } from '@features/chat/store/replyStore';
+import { useAuthStore } from '@features/auth/store/authStore';
+import { encodeSystemEvent } from '@lib/i18n/systemEvent';
 import { getSignedUrl } from '@lib/supabase/storage';
 import { supabase } from '@lib/supabase/client';
 import { useThemeColors, type ThemeColors } from '@lib/theme/useThemeColors';
 import { MentionText } from './MentionText';
 import type { DbGroupMessage, DbMessage } from '@/types/database';
 import type { MentionMember } from '../utils/mentions';
+
+// Group save badge label: tells the current user who has saved this
+// message. The visibility rule lives in the hook (a message stays as long
+// as cardinality(saved_by) > 0); this is purely cosmetic.
+function groupSavedLabel(
+  savedBy: string[],
+  myId: string | undefined,
+  t: (key: string, opts?: { count: number }) => string,
+): string {
+  if (savedBy.length === 0) return '';
+  const byMe = !!myId && savedBy.includes(myId);
+  if (savedBy.length === 1) return byMe ? t('chat.savedByYou') : t('chat.savedBadge');
+  return t('chat.savedByCount', { count: savedBy.length });
+}
 
 interface Props {
   message: DbGroupMessage;
@@ -80,7 +96,9 @@ function TextBubble({
 }: Props) {
   const c = useThemeColors();
   const { t } = useTranslation();
-  const isSaved = message.saved_by.length > 0;
+  const myId = useAuthStore((s) => s.profile?.id);
+  const isSavedAnywhere = message.saved_by.length > 0;
+  const isSavedByMe = !!myId && message.saved_by.includes(myId);
   const setReplyTarget = useReplyStore((s) => s.setTarget);
   const [quoted, setQuoted] = useState<DbGroupMessage | null>(null);
 
@@ -108,14 +126,18 @@ function TextBubble({
     };
   }, [message.reply_to_message_id]);
 
+  // Per-user toggle: only my own entry in saved_by[] flips. Tapping when
+  // I haven't saved (even if other members have) saves it for me — matching
+  // the spec's "treat unsave-without-prior-save as save" rule. The message
+  // persists in the chat as long as cardinality(saved_by) > 0.
   function toggleSave() {
     Haptics.selectionAsync();
-    if (isSaved) {
+    if (isSavedByMe) {
       onSetSaved(message.id, false);
-      onPostSystem(t('chat.unsavedMessage', { name: authorName }));
+      onPostSystem(encodeSystemEvent('chat.unsavedMessage', { name: authorName }));
     } else {
       onSetSaved(message.id, true);
-      onPostSystem(t('chat.savedMessage', { name: authorName }));
+      onPostSystem(encodeSystemEvent('chat.savedMessage', { name: authorName }));
     }
   }
 
@@ -138,7 +160,7 @@ function TextBubble({
           style: 'destructive',
           onPress: () => {
             onDelete(message.id);
-            onPostSystem(t('chat.unsavedMessage', { name: authorName }));
+            onPostSystem(encodeSystemEvent('chat.unsavedMessage', { name: authorName }));
           },
         },
       ]);
@@ -189,10 +211,18 @@ function TextBubble({
           style={[
             styles.textBubble,
             { backgroundColor: colors.bg },
-            isSaved && {
+            // Glow border only when I have it saved; subtle outline when
+            // someone else does — keeps the visual hierarchy aligned with
+            // who took the action.
+            isSavedByMe && {
               borderWidth: 2,
               borderColor: c.accent,
             },
+            isSavedAnywhere &&
+              !isSavedByMe && {
+                borderWidth: 1,
+                borderColor: 'rgba(255,255,255,0.45)',
+              },
             iAmMentioned &&
               !isOwn && {
                 borderWidth: 2,
@@ -238,17 +268,27 @@ function TextBubble({
             members={members}
             baseColor={colors.text}
           />
-          {isSaved && (
-            <View style={[styles.savedIndicator, { backgroundColor: c.accent }]}>
-              <Ionicons name="bookmark" size={10} color={c.accentText} />
+          {isSavedAnywhere && (
+            <View
+              style={[
+                styles.savedIndicator,
+                {
+                  backgroundColor: isSavedByMe ? c.accent : 'rgba(0,0,0,0.45)',
+                },
+              ]}>
+              <Ionicons
+                name="bookmark"
+                size={10}
+                color={isSavedByMe ? c.accentText : '#FFFFFF'}
+              />
               <Text
                 style={{
-                  color: c.accentText,
+                  color: isSavedByMe ? c.accentText : '#FFFFFF',
                   fontSize: 10,
                   fontWeight: '700',
                   marginLeft: 4,
                 }}>
-                {t('chat.savedBadge')}
+                {groupSavedLabel(message.saved_by, myId, t)}
               </Text>
             </View>
           )}
@@ -281,11 +321,13 @@ function MediaBubble({
 }: Props) {
   const c = useThemeColors();
   const { t } = useTranslation();
+  const myId = useAuthStore((s) => s.profile?.id);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [signedFull, setSignedFull] = useState<string | null>(null);
   const [signedThumb, setSignedThumb] = useState<string | null>(null);
 
   const isSavedAnywhere = message.saved_by.length > 0;
+  const isSavedByMe = !!myId && message.saved_by.includes(myId);
 
   useEffect(() => {
     if (!message.media_url) return;
@@ -338,12 +380,12 @@ function MediaBubble({
 
   function saveInViewer() {
     onSetSaved(message.id, true);
-    onPostSystem(t('chat.savedSnap', { name: authorName }));
+    onPostSystem(encodeSystemEvent('chat.savedSnap', { name: authorName }));
   }
 
   function unsaveInViewer() {
     onSetSaved(message.id, false);
-    onPostSystem(t('chat.unsavedSnap', { name: authorName }));
+    onPostSystem(encodeSystemEvent('chat.unsavedSnap', { name: authorName }));
   }
 
   function handleLongPress() {
@@ -356,7 +398,9 @@ function MediaBubble({
           style: 'destructive',
           onPress: () => {
             onDelete(message.id);
-            onPostSystem(t('chat.group.bubble.deletedSnap', { name: authorName }));
+            onPostSystem(
+              encodeSystemEvent('chat.group.bubble.deletedSnap', { name: authorName }),
+            );
           },
         },
       ]);
@@ -383,16 +427,24 @@ function MediaBubble({
           ) : (
             <View style={[styles.previewImage, styles.previewPlaceholder]} />
           )}
-          <View style={[styles.savedBadge, { backgroundColor: c.accent }]}>
-            <Ionicons name="bookmark" size={12} color={c.accentText} />
+          <View
+            style={[
+              styles.savedBadge,
+              { backgroundColor: isSavedByMe ? c.accent : 'rgba(0,0,0,0.55)' },
+            ]}>
+            <Ionicons
+              name="bookmark"
+              size={12}
+              color={isSavedByMe ? c.accentText : '#FFFFFF'}
+            />
             <Text
               style={{
-                color: c.accentText,
+                color: isSavedByMe ? c.accentText : '#FFFFFF',
                 fontWeight: '700',
                 fontSize: 10,
                 marginLeft: 4,
               }}>
-              {t('chat.savedBadge')}
+              {groupSavedLabel(message.saved_by, myId, t)}
             </Text>
           </View>
         </Pressable>
@@ -402,7 +454,7 @@ function MediaBubble({
             mediaPath={message.media_url}
             preloadedUrl={signedFull}
             isOwn={isOwn}
-            alreadySaved
+            alreadySaved={isSavedByMe}
             onClose={closeSnap}
             onSave={saveInViewer}
             onUnsave={unsaveInViewer}

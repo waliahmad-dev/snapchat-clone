@@ -17,11 +17,19 @@ export default class Message extends Model {
   @text('type') type!: MessageType;
   @field('created_at') createdAt!: number;
   @field('viewed_at') viewedAt!: number | null;
-  @field('saved') saved!: boolean;
+  @text('saved_by_json') savedByJson!: string;
   @field('deleted_at') deletedAt!: number | null;
   @field('is_optimistic') isOptimistic!: boolean;
   @text('reply_to_message_id') replyToMessageId!: string | null;
   @field('hidden_locally') hiddenLocally!: boolean;
 
   @relation('conversations', 'conversation_id') conversation!: Conversation;
+
+  get savedBy(): string[] {
+    try {
+      return JSON.parse(this.savedByJson || '[]') as string[];
+    } catch {
+      return [];
+    }
+  }
 }

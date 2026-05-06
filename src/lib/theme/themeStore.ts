@@ -5,7 +5,7 @@ import type { ThemeScheme } from './useThemeColors';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 
-const STORAGE_KEY = 'app:theme-mode';
+const STORAGE_KEY = 'app_theme_mode';
 
 interface ThemeState {
   mode: ThemeMode;

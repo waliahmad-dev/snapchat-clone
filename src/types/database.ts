@@ -41,7 +41,7 @@ export interface DbMessage {
   type: MessageType;
   created_at: string;
   viewed_at: string | null;
-  saved: boolean;
+  saved_by: string[];
   deleted_at: string | null;
   reply_to_message_id?: string | null;
 }
