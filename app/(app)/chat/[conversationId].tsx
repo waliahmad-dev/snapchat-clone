@@ -37,6 +37,9 @@ export default function ConversationScreen() {
   const {
     messages,
     loading,
+    loadingMore,
+    hasMore,
+    loadMore,
     sendTextMessage,
     markViewed,
     softDeleteMessage,
@@ -162,7 +165,12 @@ export default function ConversationScreen() {
         // Treat backgrounding (not transient 'inactive' from a notification
         // pull / control center) as leaving, so a force-quit from the app
         // switcher doesn't strand presence as in_chat=true on the server.
-        void hideViewedReceivedOnLeave();
+        // Mark-then-hide so a message that arrived in this active session is
+        // never resurrected as "unread" once we leave.
+        (async () => {
+          await markAllReceivedAsViewed();
+          await hideViewedReceivedOnLeave();
+        })();
         setChatPresence(presenceConversationId, presenceUserId, false);
         presenceActiveRef.current = false;
       }
@@ -170,13 +178,16 @@ export default function ConversationScreen() {
 
     return () => {
       sub.remove();
-      void hideViewedReceivedOnLeave();
+      (async () => {
+        await markAllReceivedAsViewed();
+        await hideViewedReceivedOnLeave();
+      })();
       if (presenceActiveRef.current) {
         setChatPresence(presenceConversationId, presenceUserId, false);
         presenceActiveRef.current = false;
       }
     };
-  }, [presenceUserId, presenceConversationId, hideViewedReceivedOnLeave]);
+  }, [presenceUserId, presenceConversationId, markAllReceivedAsViewed, hideViewedReceivedOnLeave]);
 
   useEffect(() => {
     return () => useReplyStore.getState().clear();
@@ -262,6 +273,27 @@ export default function ConversationScreen() {
           keyExtractor={(item) => item.id}
           inverted
           contentContainerStyle={{ paddingVertical: 8 }}
+          // Inverted list: end-of-data == visual top, so onEndReached fires
+          // exactly when the user scrolls up to the oldest visible message.
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.4}
+          ListFooterComponent={
+            loadingMore ? (
+              <View className="py-3 items-center">
+                <ActivityIndicator color={c.accent} />
+              </View>
+            ) : !hasMore && messages.length >= 15 ? (
+              <View className="py-3 items-center">
+                <Text className="text-xs" style={{ color: c.textSecondary }}>
+                  {t('chat.conversation.startOfConversation')}
+                </Text>
+              </View>
+            ) : null
+          }
+          removeClippedSubviews
+          initialNumToRender={15}
+          maxToRenderPerBatch={10}
+          windowSize={10}
           renderItem={({ item }) => {
             const isOwn = item.sender_id === profile.id;
             const authorName = isOwn

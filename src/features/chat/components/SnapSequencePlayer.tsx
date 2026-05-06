@@ -7,7 +7,7 @@ import { enqueueJob } from '@lib/offline/outboxRunner';
 import { JOB } from '@lib/offline/jobs';
 import { uuid } from '@lib/offline/uuid';
 import { useAuthStore } from '@features/auth/store/authStore';
-import i18n from '@lib/i18n';
+import { encodeSystemEvent } from '@lib/i18n/systemEvent';
 import type { DbMessage, MessageType } from '@/types/database';
 
 interface Props {
@@ -27,7 +27,7 @@ function toDbMessage(m: Message): DbMessage {
     type: m.type as MessageType,
     created_at: new Date(m.createdAt).toISOString(),
     viewed_at: m.viewedAt ? new Date(m.viewedAt).toISOString() : null,
-    saved: m.saved,
+    saved_by: m.savedBy,
     deleted_at: m.deletedAt ? new Date(m.deletedAt).toISOString() : null,
     reply_to_message_id: m.replyToMessageId ?? null,
   };
@@ -104,20 +104,22 @@ export function SnapSequencePlayer({ messageIds, myName, conversationId, onFinis
       .query(Q.where('remote_id', current.id))
       .fetch();
     if (local.length > 0) {
+      const next = new Set(local[0].savedBy);
+      next.add(profile.id);
       await database.write(async () => {
         await local[0].update((m) => {
-          m.saved = true;
+          m.savedByJson = JSON.stringify([...next]);
         });
       });
     }
     await enqueueJob({
       kind: JOB.MESSAGE_SAVE,
-      payload: { messageId: current.id, field: 'saved', value: true },
+      payload: { messageId: current.id, save: true },
       groupKey: `msg-save:${current.id}`,
     });
 
     const sysId = uuid();
-    const sysContent = i18n.t('chat.savedSnap', { name: myName });
+    const sysContent = encodeSystemEvent('chat.savedSnap', { name: myName });
     await database.write(async () => {
       await database.get<Message>('messages').create((m) => {
         m.remoteId = sysId;
@@ -128,10 +130,11 @@ export function SnapSequencePlayer({ messageIds, myName, conversationId, onFinis
         m.type = 'system';
         m.createdAt = Date.now();
         m.viewedAt = null;
-        m.saved = false;
+        m.savedByJson = '[]';
         m.deletedAt = null;
         m.replyToMessageId = null;
         m.isOptimistic = true;
+        m.hiddenLocally = false;
       });
     });
     await enqueueJob({
@@ -147,31 +150,38 @@ export function SnapSequencePlayer({ messageIds, myName, conversationId, onFinis
   }, [current, conversationId, myName, profile]);
 
   const onUnsave = useCallback(async () => {
-    if (!current) return;
+    if (!current || !profile) return;
     const ts = new Date().toISOString();
     const local = await database
       .get<Message>('messages')
       .query(Q.where('remote_id', current.id))
       .fetch();
     if (local.length > 0) {
+      const next = new Set(local[0].savedBy);
+      next.delete(profile.id);
+      const stillSaved = next.size > 0;
       await database.write(async () => {
         await local[0].update((m) => {
-          m.saved = false;
-          m.deletedAt = Date.parse(ts);
+          m.savedByJson = JSON.stringify([...next]);
+          if (!stillSaved) m.deletedAt = Date.parse(ts);
         });
       });
+      await enqueueJob({
+        kind: JOB.MESSAGE_SAVE,
+        payload: { messageId: current.id, save: false },
+        groupKey: `msg-save:${current.id}`,
+      });
+      // Only soft-delete the message globally when no participant has it
+      // saved any more — otherwise the other user keeps their saved copy.
+      if (!stillSaved) {
+        await enqueueJob({
+          kind: JOB.MESSAGE_DELETE,
+          payload: { messageId: current.id, field: 'deleted_at', value: ts },
+          groupKey: `msg-del:${current.id}`,
+        });
+      }
     }
-    await enqueueJob({
-      kind: JOB.MESSAGE_SAVE,
-      payload: { messageId: current.id, field: 'saved', value: false },
-      groupKey: `msg-save:${current.id}`,
-    });
-    await enqueueJob({
-      kind: JOB.MESSAGE_DELETE,
-      payload: { messageId: current.id, field: 'deleted_at', value: ts },
-      groupKey: `msg-del:${current.id}`,
-    });
-  }, [current]);
+  }, [current, profile]);
 
   if (loading || !current || !current.media_url) return null;
 
@@ -180,7 +190,7 @@ export function SnapSequencePlayer({ messageIds, myName, conversationId, onFinis
       key={current.id}
       mediaPath={current.media_url}
       isOwn={false}
-      alreadySaved={!!current.saved}
+      alreadySaved={current.saved_by.length > 0}
       onClose={(savedInSession) => advance(savedInSession)}
       onSave={onSave}
       onUnsave={onUnsave}

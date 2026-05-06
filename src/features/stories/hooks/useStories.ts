@@ -1,6 +1,7 @@
 import { useEffect, useId, useState } from 'react';
 import { supabase } from '@lib/supabase/client';
 import { useAuthStore } from '@features/auth/store/authStore';
+import { useStoriesStore } from '@features/stories/store/storiesStore';
 import { checkStoryViewThrottle } from '@lib/redis/streak';
 import type { DbStory, DbUser, DbStoryView } from '@/types/database';
 
@@ -13,6 +14,7 @@ export interface StoryGroup {
 export function useStories() {
   const profile = useAuthStore((s) => s.profile);
   const instanceId = useId();
+  const lastPostedAt = useStoriesStore((s) => s.lastPostedAt);
   const [storyGroups, setStoryGroups] = useState<StoryGroup[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -43,6 +45,11 @@ export function useStories() {
       supabase.removeChannel(sub);
     };
   }, [profile?.id, instanceId]);
+
+  useEffect(() => {
+    if (!profile || lastPostedAt === 0) return;
+    loadStories();
+  }, [lastPostedAt, profile?.id]);
 
   async function loadStories() {
     if (!profile) return;

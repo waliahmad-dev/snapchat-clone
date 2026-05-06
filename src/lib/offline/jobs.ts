@@ -73,8 +73,13 @@ export interface MessageSendJob {
 
 export interface MessageMutationJob {
   messageId: string;
-  field: 'viewed_at' | 'saved' | 'deleted_at';
-  value: string | boolean | null;
+  field: 'viewed_at' | 'deleted_at';
+  value: string | null;
+}
+
+export interface MessageSaveJob {
+  messageId: string;
+  save: boolean;
 }
 
 export interface SystemMessageJob {

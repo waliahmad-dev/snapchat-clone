@@ -5,7 +5,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { GroupAvatar } from './GroupAvatar';
 import { shortTimeAgo } from '@features/chat/utils/messageHelpers';
+import { useNow } from '@hooks/useNow';
 import { useThemeColors } from '@lib/theme/useThemeColors';
+import { decodeSystemEvent } from '@lib/i18n/systemEvent';
 import type { GroupChatSummary } from '../hooks/useGroupChats';
 
 interface Props {
@@ -17,17 +19,22 @@ export function GroupConversationRow({ group }: Props) {
   const { t } = useTranslation();
   const c = useThemeColors();
 
+  const now = useNow(60_000);
   const fallbackName =
     group.members.slice(0, 3).map((m) => m.display_name.split(' ')[0]).join(', ') ||
     'Group';
   const title = group.name?.trim() || fallbackName;
-  const timeLabel = shortTimeAgo(group.lastMessageAt);
+  const timeLabel = shortTimeAgo(group.lastMessageAt, now);
 
   const previewIcon: React.ComponentProps<typeof Ionicons>['name'] =
     group.hasUnviewedMedia ? 'camera' : 'chatbubble';
   const previewColor = group.unreadCount > 0 ? '#00C2FF' : c.textMuted;
+  // System events ("Alice created the group", "Bob added Carol") are stored
+  // as i18n envelopes so each member sees them in their own locale. Decode
+  // at render time; fall back to the raw string for normal messages.
+  const decoded = decodeSystemEvent(group.lastMessageText);
   const previewText =
-    group.lastMessageText ||
+    (decoded ? t(decoded.key, decoded.args ?? {}) : group.lastMessageText) ||
     (group.members.length === 0
       ? t('chat.group.row.justYou')
       : t('chat.group.row.sayHi'));

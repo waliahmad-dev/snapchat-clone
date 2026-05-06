@@ -6,7 +6,7 @@ import GroupMessage from '@lib/watermelondb/models/GroupMessage';
 import { enqueueJob } from '@lib/offline/outboxRunner';
 import { JOB } from '@lib/offline/jobs';
 import { uuid } from '@lib/offline/uuid';
-import i18n from '@lib/i18n';
+import { encodeSystemEvent } from '@lib/i18n/systemEvent';
 
 export interface CreateGroupInput {
   creatorId: string;
@@ -30,7 +30,12 @@ export async function createGroup(input: CreateGroupInput): Promise<string> {
   for (const uid of input.memberIds) memberMembershipIds[uid] = uuid();
 
   const systemMessageId = uuid();
-  const systemContent = i18n.t('chat.group.system.createdGroup', { name: input.creatorName });
+  // Stored as an i18n envelope so each member sees the event in their own
+  // locale. SystemEventBubble / formatMessagePreview / GroupConversationRow
+  // all decode this at render time.
+  const systemContent = encodeSystemEvent('chat.group.system.createdGroup', {
+    name: input.creatorName,
+  });
 
   await database.write(async () => {
     await database.get<GroupChat>('group_chats').create((g) => {

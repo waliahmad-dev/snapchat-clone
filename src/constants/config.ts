@@ -11,4 +11,4 @@ export const IMAGE_QUALITY_FULL = 0.85;
 export const IMAGE_QUALITY_PREVIEW = 0.7;
 export const IMAGE_QUALITY_THUMBNAIL = 0.82;
 export const SIGNED_URL_EXPIRY_SECONDS = 3600;
-export const MESSAGE_PAGE_SIZE = 40;
+export const MESSAGE_PAGE_SIZE = 15;

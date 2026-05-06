@@ -13,6 +13,7 @@ import GroupMessage from '@lib/watermelondb/models/GroupMessage';
 import GroupMessageView from '@lib/watermelondb/models/GroupMessageView';
 import { ensureConversation } from '@features/chat/utils/conversation';
 import { purgeRelationshipData } from '@features/friends/utils/purgeRelationship';
+import { useStoriesStore } from '@features/stories/store/storiesStore';
 import { deletePersistedMedia, persistedMediaExists } from './persistMedia';
 import { registerHandler } from './outboxRunner';
 import {
@@ -22,6 +23,7 @@ import {
   type StoryPostJob,
   type MessageSendJob,
   type MessageMutationJob,
+  type MessageSaveJob,
   type SystemMessageJob,
   type ConversationTouchJob,
   type ChatPresenceSetJob,
@@ -55,7 +57,7 @@ export function initOfflineHandlers(): void {
   registerHandler(JOB.STORY_POST, storyPost as never);
   registerHandler(JOB.MESSAGE_SEND, messageSend as never);
   registerHandler(JOB.MESSAGE_VIEW, messageMutation as never);
-  registerHandler(JOB.MESSAGE_SAVE, messageMutation as never);
+  registerHandler(JOB.MESSAGE_SAVE, messageSave as never);
   registerHandler(JOB.MESSAGE_DELETE, messageMutation as never);
   registerHandler(JOB.SYSTEM_MESSAGE, systemMessage as never);
   registerHandler(JOB.CONVERSATION_TOUCH, conversationTouch as never);
@@ -235,6 +237,7 @@ async function snapSend(p: SnapSendJob): Promise<void> {
       },
       { onConflict: 'id', ignoreDuplicates: true }
     );
+    useStoriesStore.getState().notifyPosted();
   }
 
   if (p.groupIds && p.groupIds.length > 0 && p.groupMessageIds) {
@@ -282,6 +285,7 @@ async function storyPost(p: StoryPostJob): Promise<void> {
   );
   if (error) throw error;
 
+  useStoriesStore.getState().notifyPosted();
   await deletePersistedMedia(p.imageUri);
 }
 
@@ -320,6 +324,14 @@ async function messageMutation(p: MessageMutationJob): Promise<void> {
   const updates: Record<string, unknown> = {};
   updates[p.field] = p.value;
   const { error } = await supabase.from('messages').update(updates).eq('id', p.messageId);
+  if (error) throw error;
+}
+
+async function messageSave(p: MessageSaveJob): Promise<void> {
+  const { error } = await supabase.rpc('toggle_message_save', {
+    _message: p.messageId,
+    _save: p.save,
+  });
   if (error) throw error;
 }
 

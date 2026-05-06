@@ -71,10 +71,11 @@ export async function sendSnapToRecipients({
         m.type = 'snap';
         m.createdAt = Date.now();
         m.viewedAt = null;
-        m.saved = false;
+        m.savedByJson = '[]';
         m.deletedAt = null;
         m.replyToMessageId = null;
         m.isOptimistic = true;
+        m.hiddenLocally = false;
       });
     }
 

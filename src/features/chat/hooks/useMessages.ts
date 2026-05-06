@@ -1,29 +1,15 @@
-import { useEffect, useId, useState, useCallback } from 'react';
+import { useEffect, useId, useState, useCallback, useRef } from 'react';
 import { Q } from '@nozbe/watermelondb';
 import { supabase } from '@lib/supabase/client';
 import { useAuthStore } from '@features/auth/store/authStore';
-import type { DbMessage, MessageType } from '@/types/database';
+import type { DbMessage } from '@/types/database';
 import { MESSAGE_PAGE_SIZE } from '@constants/config';
 import { database } from '@lib/watermelondb/database';
 import Message from '@lib/watermelondb/models/Message';
-import Outbox from '@lib/watermelondb/models/Outbox';
 import { enqueueJob } from '@lib/offline/outboxRunner';
 import { JOB } from '@lib/offline/jobs';
 import { uuid } from '@lib/offline/uuid';
-
-interface RemoteMessageRow {
-  id: string;
-  conversation_id: string;
-  sender_id: string;
-  content: string | null;
-  media_url: string | null;
-  type: MessageType;
-  created_at: string;
-  viewed_at: string | null;
-  saved: boolean;
-  deleted_at: string | null;
-  reply_to_message_id?: string | null;
-}
+import { upsertRemoteMessage, type RemoteMessageRow } from '../utils/messageSync';
 
 const messagesCollection = () => database.get<Message>('messages');
 
@@ -37,91 +23,10 @@ function toDbMessage(m: Message): DbMessage {
     type: m.type,
     created_at: new Date(m.createdAt).toISOString(),
     viewed_at: m.viewedAt ? new Date(m.viewedAt).toISOString() : null,
-    saved: m.saved,
+    saved_by: m.savedBy,
     deleted_at: m.deletedAt ? new Date(m.deletedAt).toISOString() : null,
     reply_to_message_id: m.replyToMessageId ?? null,
   };
-}
-
-async function findOptimisticMatch(row: RemoteMessageRow): Promise<Message | null> {
-  const candidates = await messagesCollection()
-    .query(
-      Q.where('is_optimistic', true),
-      Q.where('conversation_id', row.conversation_id),
-      Q.where('sender_id', row.sender_id),
-      Q.where('type', row.type),
-      Q.where('content', row.content ?? null),
-    )
-    .fetch();
-  if (candidates.length === 0) return null;
-  return candidates.slice().sort((a, b) => a.createdAt - b.createdAt)[0];
-}
-
-async function hasPendingMutation(remoteId: string, prefix: string): Promise<boolean> {
-  const rows = await database
-    .get<Outbox>('outbox')
-    .query(Q.where('group_key', `${prefix}:${remoteId}`))
-    .fetch();
-  return rows.length > 0;
-}
-
-async function upsertRemoteRow(row: RemoteMessageRow): Promise<void> {
-  const collection = messagesCollection();
-
-  const [savePending, viewPending, deletePending] = await Promise.all([
-    hasPendingMutation(row.id, 'msg-save'),
-    hasPendingMutation(row.id, 'msg-view'),
-    hasPendingMutation(row.id, 'msg-del'),
-  ]);
-
-  const existing = await collection.query(Q.where('remote_id', row.id)).fetch();
-  if (existing.length > 0) {
-    const target = existing[0];
-    await target.update((m) => {
-      m.content = row.content;
-      m.mediaUrl = row.media_url;
-      m.type = row.type;
-      m.createdAt = new Date(row.created_at).getTime();
-      if (!viewPending) m.viewedAt = row.viewed_at ? new Date(row.viewed_at).getTime() : null;
-      if (!savePending) m.saved = row.saved;
-      if (!deletePending) m.deletedAt = row.deleted_at ? new Date(row.deleted_at).getTime() : null;
-      m.replyToMessageId = row.reply_to_message_id ?? null;
-      m.isOptimistic = false;
-      // hidden_locally is a per-device flag — never overwrite from server.
-    });
-    return;
-  }
-
-  const optimistic = await findOptimisticMatch(row);
-  if (optimistic) {
-    await optimistic.update((m) => {
-      m.remoteId = row.id;
-      m.createdAt = new Date(row.created_at).getTime();
-      if (!viewPending) m.viewedAt = row.viewed_at ? new Date(row.viewed_at).getTime() : null;
-      if (!savePending) m.saved = row.saved;
-      if (!deletePending) m.deletedAt = row.deleted_at ? new Date(row.deleted_at).getTime() : null;
-      m.mediaUrl = row.media_url;
-      m.replyToMessageId = row.reply_to_message_id ?? null;
-      m.isOptimistic = false;
-    });
-    return;
-  }
-
-  await collection.create((m) => {
-    m.remoteId = row.id;
-    m.conversationId = row.conversation_id;
-    m.senderId = row.sender_id;
-    m.content = row.content;
-    m.mediaUrl = row.media_url;
-    m.type = row.type;
-    m.createdAt = new Date(row.created_at).getTime();
-    m.viewedAt = row.viewed_at ? new Date(row.viewed_at).getTime() : null;
-    m.saved = row.saved;
-    m.deletedAt = row.deleted_at ? new Date(row.deleted_at).getTime() : null;
-    m.replyToMessageId = row.reply_to_message_id ?? null;
-    m.isOptimistic = false;
-    m.hiddenLocally = false;
-  });
 }
 
 async function findByLocalId(localId: string): Promise<Message | null> {
@@ -137,6 +42,18 @@ export function useMessages(conversationId: string) {
   const instanceId = useId();
   const [messages, setMessages] = useState<DbMessage[]>([]);
   const [loading, setLoading] = useState(true);
+  const [displayLimit, setDisplayLimit] = useState(MESSAGE_PAGE_SIZE);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const loadingMoreRef = useRef(false);
+
+  // Reset pagination when switching conversations.
+  useEffect(() => {
+    setDisplayLimit(MESSAGE_PAGE_SIZE);
+    setHasMore(true);
+    setLoadingMore(false);
+    loadingMoreRef.current = false;
+  }, [conversationId]);
 
   useEffect(() => {
     if (!conversationId) return;
@@ -146,17 +63,21 @@ export function useMessages(conversationId: string) {
         Q.where('deleted_at', null),
         Q.where('hidden_locally', Q.notEq(true)),
       )
-      .observe()
+      // observeWithColumns re-emits when *fields* on existing rows change
+      // (saved_by_json/viewed_at/content), not just on insert/delete. Without
+      // it, toggling save on a message wouldn't propagate the new value to
+      // the bubble, so a follow-up tap would read stale state.
+      .observeWithColumns(['saved_by_json', 'viewed_at', 'content', 'media_url'])
       .subscribe((rows) => {
         const sorted = rows
           .slice()
           .sort((a, b) => b.createdAt - a.createdAt)
-          .slice(0, MESSAGE_PAGE_SIZE)
+          .slice(0, displayLimit)
           .map(toDbMessage);
         setMessages(sorted);
       });
     return () => sub.unsubscribe();
-  }, [conversationId]);
+  }, [conversationId, displayLimit]);
 
   useEffect(() => {
     if (!conversationId || !profile) return;
@@ -180,9 +101,12 @@ export function useMessages(conversationId: string) {
           const row = payload.new as RemoteMessageRow;
           database
             .write(async () => {
-              await upsertRemoteRow(row);
+              await upsertRemoteMessage(row);
             })
             .catch((err) => console.warn('[Messages] realtime INSERT failed:', err));
+          // Grow the slice so an incoming message never pushes a previously
+          // loaded older message off the visible window.
+          setDisplayLimit((n) => n + 1);
         },
       )
       .on(
@@ -197,7 +121,7 @@ export function useMessages(conversationId: string) {
           const row = payload.new as RemoteMessageRow;
           database
             .write(async () => {
-              await upsertRemoteRow(row);
+              await upsertRemoteMessage(row);
             })
             .catch((err) => console.warn('[Messages] realtime UPDATE failed:', err));
         },
@@ -220,17 +144,68 @@ export function useMessages(conversationId: string) {
         .order('created_at', { ascending: false })
         .limit(MESSAGE_PAGE_SIZE);
 
-      if (!data || data.length === 0) return;
+      if (!data) return;
+      if (data.length < MESSAGE_PAGE_SIZE) setHasMore(false);
+      if (data.length === 0) return;
 
       await database.write(async () => {
         for (const row of data as RemoteMessageRow[]) {
-          await upsertRemoteRow(row);
+          await upsertRemoteMessage(row);
         }
       });
     } catch (err) {
       console.warn('[Messages] sync failed:', err);
     }
   }
+
+  /**
+   * Fetch the next page of older messages from the server, append them to
+   * the local cache, and grow the slice window so the new rows render at the
+   * visual top of the inverted FlatList.
+   *
+   * The ref guard prevents overlapping fetches when onEndReached fires
+   * multiple times in a row during a fast scroll.
+   */
+  const loadMore = useCallback(async (): Promise<void> => {
+    if (loadingMoreRef.current) return;
+    if (!hasMore) return;
+    if (!conversationId) return;
+    if (messages.length === 0) return;
+
+    loadingMoreRef.current = true;
+    setLoadingMore(true);
+    try {
+      const oldestIso = messages[messages.length - 1].created_at;
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .lt('created_at', oldestIso)
+        .order('created_at', { ascending: false })
+        .limit(MESSAGE_PAGE_SIZE);
+      if (error) throw error;
+
+      const fetched = (data ?? []) as RemoteMessageRow[];
+      if (fetched.length < MESSAGE_PAGE_SIZE) setHasMore(false);
+
+      if (fetched.length > 0) {
+        await database.write(async () => {
+          for (const row of fetched) {
+            await upsertRemoteMessage(row);
+          }
+        });
+      }
+
+      // Always grow the slice so any cached-but-not-yet-rendered older
+      // messages also become visible on offline / partial-page scrolls.
+      setDisplayLimit((n) => n + MESSAGE_PAGE_SIZE);
+    } catch (err) {
+      console.warn('[Messages] loadMore failed:', err);
+    } finally {
+      loadingMoreRef.current = false;
+      setLoadingMore(false);
+    }
+  }, [conversationId, messages, hasMore]);
 
   const sendTextMessage = useCallback(
     async (content: string, replyToMessageId?: string | null): Promise<void> => {
@@ -255,13 +230,16 @@ export function useMessages(conversationId: string) {
           m.type = 'text';
           m.createdAt = Date.now();
           m.viewedAt = null;
-          m.saved = false;
+          m.savedByJson = '[]';
           m.deletedAt = null;
           m.replyToMessageId = replyRemoteId;
           m.isOptimistic = true;
           m.hiddenLocally = false;
         });
       });
+      // Grow the slice so previously loaded older messages don't fall off
+      // when this new row arrives at the top.
+      setDisplayLimit((n) => n + 1);
 
       await enqueueJob({
         kind: JOB.MESSAGE_SEND,
@@ -305,20 +283,26 @@ export function useMessages(conversationId: string) {
     });
   }, []);
 
-  const saveMessage = useCallback(async (localId: string) => {
-    const target = await findByLocalId(localId);
-    if (!target?.remoteId) return;
-    await database.write(async () => {
-      await target.update((m) => {
-        m.saved = true;
+  const saveMessage = useCallback(
+    async (localId: string) => {
+      const target = await findByLocalId(localId);
+      if (!target?.remoteId || !profile) return;
+      const next = new Set(target.savedBy);
+      if (next.has(profile.id)) return;
+      next.add(profile.id);
+      await database.write(async () => {
+        await target.update((m) => {
+          m.savedByJson = JSON.stringify([...next]);
+        });
       });
-    });
-    await enqueueJob({
-      kind: JOB.MESSAGE_SAVE,
-      payload: { messageId: target.remoteId, field: 'saved', value: true },
-      groupKey: `msg-save:${target.remoteId}`,
-    });
-  }, []);
+      await enqueueJob({
+        kind: JOB.MESSAGE_SAVE,
+        payload: { messageId: target.remoteId, save: true },
+        groupKey: `msg-save:${target.remoteId}`,
+      });
+    },
+    [profile],
+  );
 
   const softDeleteMessage = useCallback(async (localId: string) => {
     const target = await findByLocalId(localId);
@@ -336,25 +320,32 @@ export function useMessages(conversationId: string) {
     });
   }, []);
 
-  const setMessageSaved = useCallback(async (localId: string, save: boolean) => {
-    const target = await findByLocalId(localId);
-    if (!target?.remoteId) return;
-    const wasViewed = target.viewedAt != null;
-    await database.write(async () => {
-      await target.update((m) => {
-        m.saved = save;
-        // Unsaving a previously viewed message hides it locally only. The
-        // server-side row stays alive until both participants leave the chat,
-        // so the *other* user keeps seeing it while they're still active.
-        if (!save && wasViewed) m.hiddenLocally = true;
+  const setMessageSaved = useCallback(
+    async (localId: string, save: boolean) => {
+      const target = await findByLocalId(localId);
+      if (!target?.remoteId || !profile) return;
+      // Per-user save state: this only adds/removes the current user's id
+      // from saved_by[]. The message stays visible globally as long as at
+      // least one participant has saved it. hideViewedReceivedOnLeave drops
+      // unsaved received messages locally on exit; the server chat_presence
+      // trigger destroys rows once both participants are out and saved_by is
+      // empty.
+      const next = new Set(target.savedBy);
+      if (save) next.add(profile.id);
+      else next.delete(profile.id);
+      await database.write(async () => {
+        await target.update((m) => {
+          m.savedByJson = JSON.stringify([...next]);
+        });
       });
-    });
-    await enqueueJob({
-      kind: JOB.MESSAGE_SAVE,
-      payload: { messageId: target.remoteId, field: 'saved', value: save },
-      groupKey: `msg-save:${target.remoteId}`,
-    });
-  }, []);
+      await enqueueJob({
+        kind: JOB.MESSAGE_SAVE,
+        payload: { messageId: target.remoteId, save },
+        groupKey: `msg-save:${target.remoteId}`,
+      });
+    },
+    [profile],
+  );
 
   const postSystemMessage = useCallback(
     async (content: string) => {
@@ -371,13 +362,14 @@ export function useMessages(conversationId: string) {
           m.type = 'system';
           m.createdAt = Date.now();
           m.viewedAt = null;
-          m.saved = false;
+          m.savedByJson = '[]';
           m.deletedAt = null;
           m.replyToMessageId = null;
           m.isOptimistic = true;
           m.hiddenLocally = false;
         });
       });
+      setDisplayLimit((n) => n + 1);
 
       await enqueueJob({
         kind: JOB.SYSTEM_MESSAGE,
@@ -429,7 +421,7 @@ export function useMessages(conversationId: string) {
    * Local-only hide of unsaved received messages on leave. The server row
    * stays alive so the sender keeps seeing it while they're still in the
    * chat — true destruction happens server-side via the chat_presence
-   * trigger once both participants are out.
+   * trigger once both participants are out and saved_by is empty.
    */
   const hideViewedReceivedOnLeave = useCallback(async () => {
     if (!profile) return;
@@ -438,17 +430,20 @@ export function useMessages(conversationId: string) {
       .query(
         Q.where('conversation_id', conversationId),
         Q.where('sender_id', Q.notEq(profile.id)),
-        Q.where('saved', false),
         Q.where('deleted_at', null),
         Q.where('hidden_locally', Q.notEq(true)),
         Q.where('type', Q.oneOf(['text', 'media', 'snap'])),
         Q.where('viewed_at', Q.notEq(null)),
       )
       .fetch();
-    if (local.length === 0) return;
+    // Filter saved_by in JS — it lives in a JSON-serialised text column,
+    // which WatermelonDB's query layer can't introspect directly. A message
+    // counts as "unsaved" only when no participant has saved it.
+    const targets = local.filter((m) => m.savedBy.length === 0);
+    if (targets.length === 0) return;
 
     await database.write(async () => {
-      for (const m of local) {
+      for (const m of targets) {
         await m.update((row) => {
           row.hiddenLocally = true;
         });
@@ -459,6 +454,9 @@ export function useMessages(conversationId: string) {
   return {
     messages,
     loading,
+    loadingMore,
+    hasMore,
+    loadMore,
     sendTextMessage,
     markViewed,
     saveMessage,

@@ -241,7 +241,8 @@
       "newFriendBody": "Say hi with a wave — send your first snap or message.",
       "replyingTo": "Replying to {{name}}",
       "replyPlaceholder": "Reply to {{name}}…",
-      "sendPlaceholder": "Send a chat…"
+      "sendPlaceholder": "Send a chat…",
+      "startOfConversation": "Start of conversation"
     },
     "row": {
       "sent": "Sent",
@@ -280,7 +281,11 @@
     "unsavedSnap": "{{name}} unsaved a snap",
     "savedMessage": "{{name}} saved a message",
     "unsavedMessage": "{{name}} unsaved a message",
+    "screenshotTaken": "{{name}} took a screenshot 📸",
     "savedBadge": "SAVED",
+    "savedByYou": "SAVED BY YOU",
+    "savedByBoth": "SAVED BY BOTH",
+    "savedByCount": "SAVED BY {{count}}",
     "deleteSnapTitle": "Delete snap?",
     "deleteSnapBody": "Both of you will see that you deleted it.",
     "deleteMessageTitle": "Delete message?",

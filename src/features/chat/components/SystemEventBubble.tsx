@@ -1,8 +1,10 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import { formatDistanceToNow } from 'date-fns/formatDistanceToNow';
+import { useTranslation } from 'react-i18next';
 import type { DbMessage } from '@/types/database';
 import { useThemeColors } from '@lib/theme/useThemeColors';
+import { decodeSystemEvent } from '@lib/i18n/systemEvent';
 
 interface Props {
   message: DbMessage;
@@ -10,7 +12,12 @@ interface Props {
 
 export function SystemEventBubble({ message }: Props) {
   const c = useThemeColors();
-  const content = message.content ?? '';
+  const { t } = useTranslation();
+
+  // Translate at render time so every reader sees the event in their own
+  // locale, not the sender's.
+  const evt = decodeSystemEvent(message.content);
+  const content = evt ? t(evt.key, evt.args ?? {}) : (message.content ?? '');
   const isStreak = /streak/i.test(content);
 
   const pillBg = isStreak
